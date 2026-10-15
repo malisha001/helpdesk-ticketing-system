@@ -19,7 +19,7 @@ class Ticket extends Model
         'subject',
         'description',
         'priority',
-        'status',    
+        'status',
     ];
 
     public function customer(): BelongsTo
@@ -40,6 +40,7 @@ class Ticket extends Model
     public function activeAssignment(): HasOne
     {
         return $this->hasOne(TicketAgent::class,'ticket_id')
+        //Only return rows where the unassigned_at column is NULL.
         ->whereNull('unassigned_at');
     }
 
