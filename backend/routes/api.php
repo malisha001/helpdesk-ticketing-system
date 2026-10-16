@@ -26,8 +26,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/tickets/{id}', [TicketController::class, 'show'])
             ->whereNumber('id');
-        
+
         Route::post('/tickets/{id}/claim', [TicketController::class, 'claim'])
+            ->whereNumber('id');
+
+        Route::post('/tickets/{id}/assign', [TicketController::class, 'assign'])
+            ->whereNumber('id');
+
+        Route::post('/tickets/{id}/reassign', [TicketController::class, 'reassign'])
             ->whereNumber('id');
     });
 });

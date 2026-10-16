@@ -33,4 +33,34 @@ class TicketHistoryService
             'new_value' => 'open',
         ]);
     }
+
+    public function recordAssignment(
+        Ticket $ticket,
+        User $agent,
+        User $admin
+    ): TicketHistory {
+
+        return $ticket->history()->create([
+            'user_id' => $admin->id,
+            'action' => 'ticket_assigned',
+            'old_value' => null,
+            'new_value' => (string) $agent->id,
+        ]);
+    }
+
+    public function recordReassignment(
+        Ticket $ticket,
+        User $admin,
+        int $previousAgentId,
+        int $newAgentId
+    ): TicketHistory {
+
+        return $ticket->history()->create([
+            'user_id' => $admin->id,
+            'action' => 'ticket_reassigned',
+            'old_value' => (string) $previousAgentId,
+            'new_value' => (string) $newAgentId,
+        ]);
+    }
+
 }

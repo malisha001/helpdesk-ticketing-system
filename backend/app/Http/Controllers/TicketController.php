@@ -11,7 +11,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Handlers\ClaimTicketHandler;
 use App\Http\Requests\ClaimTicketRequest;
-
+use App\Handlers\AssignTicketHandler;
+use App\Http\Requests\AssignTicketRequest;
+use App\Handlers\ReassignTicketHandler;
+use App\Http\Requests\ReassignTicketRequest;
 class TicketController extends Controller
 {
     public function store(
@@ -78,6 +81,55 @@ class TicketController extends Controller
             'success' => true,
             'message' => 'Ticket claimed successfully.',
             'data' => $ticket->load('activeAssignment.agent'),
+        ], 200);
+    }
+
+    public function assign(
+        AssignTicketRequest $request,
+        AssignTicketHandler $handler,
+        int $id
+    ): JsonResponse {
+
+        $ticket = $handler->handle(
+            $request->user(),
+            $id,
+            (int) $request->validated('agent_id')
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ticket assigned successfully.',
+            'data' => [
+                'ticket_id' => $ticket->id,
+                'agent_id' => (int) $request->validated('agent_id'),
+                'status' => $ticket->status,
+            ],
+        ], 200);
+    }
+
+    public function reassign(
+        ReassignTicketRequest $request,
+        ReassignTicketHandler $handler,
+        int $id
+    ): JsonResponse {
+
+        $validated = $request->validated();
+
+        $ticket = $handler->handle(
+            $request->user(),
+            $id,
+            (int) $validated['agent_id'],
+            $validated['reason'] ?? null
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ticket reassigned successfully.',
+            'data' => [
+                'ticket_id' => $ticket->id,
+                'new_agent_id' => (int) $validated['agent_id'],
+                'status' => $ticket->status,
+            ],
         ], 200);
     }
 }
