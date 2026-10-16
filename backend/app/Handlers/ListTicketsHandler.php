@@ -2,69 +2,52 @@
 
 namespace App\Handlers;
 
-use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Services\TicketService;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ListTicketsHandler
 {
+    public function __construct(
+        private TicketService $ticketService
+    ) {}
+
     public function handle(
         User $user,
         array $filters = []
-    ): LengthAwarePaginator{
+    ): LengthAwarePaginator {
 
-        $query = Ticket::query();
-
-        //role-based access
+        // Customer tickets
         if ($user->hasRole('customer')) {
 
-            $query->where('customer_id', $user->id);
+            abort_unless($user->can('view-own-ticket'), 403);
 
-        } elseif ($user->hasRole('support_agent')) {
-
-            $query->where(function ($q) use ($user) {
-
-                $q->whereDoesntHave('activeAssignment')
-                  ->orWhereHas('activeAssignment', function ($assignment) use ($user) {
-
-                      $assignment->where('agent_id', $user->id);
-
-                  });
-
-            });
-
-        } elseif (!$user->hasRole('administrator')) {
-
-            abort(403, 'You are not authorized to view tickets.');
-
+            return $this->ticketService
+                ->listForCustomer($user, $filters);
         }
 
-        //search subject and description
-        $query->when($filters['search'] ?? null, function ($q, $search) {
+        // Support agent tickets
+        if ($user->hasRole('support_agent')) {
 
-            $q->where(function ($subQuery) use ($search) {
-                $subQuery->where('subject', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%");
-            });
-        });
+            abort_unless(
+                $user->can('view-unassigned-ticket') &&
+                $user->can('view-assigned-ticket'),
+                403
+            );
 
-        //filter by status
-        $query->when($filters['status'] ?? null, function ($q, $status) {
-            $q->where('status', $status);
-        });
+            return $this->ticketService
+                ->listForAgent($user, $filters);
+        }
 
-        //filter by priority
-        $query->when($filters['priority'] ?? null, function ($q, $priority) {
-            $q->where('priority', $priority);
-        });
+        // Administrator tickets
+        if ($user->hasRole('administrator')) {
 
-        //pagination
-        $perPage = $filters['per_page'] ?? 10;
+            abort_unless($user->can('view-all-ticket'), 403);
 
-        return $query
-            ->with(['customer:id,name', 'activeAssignment.agent:id,name'])
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->paginate($perPage);
+            return $this->ticketService
+                ->listForAdmin($filters);
+        }
+
+        abort(403, 'Unauthorized.');
     }
 }

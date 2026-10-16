@@ -4,47 +4,42 @@ namespace App\Handlers;
 
 use App\Models\Ticket;
 use App\Models\User;
+use Illuminate\Container\Attributes\Database;
 use Illuminate\Support\Facades\DB;
+use App\Services\TicketAssignmentService;
+use App\Services\TicketHistoryService;
+use App\Services\TicketService;
+use App\Services\DatabaseTransactionService;
 
 class ClaimTicketHandler
 {
+    public function __construct(
+        private TicketAssignmentService $assignmentService,
+        private TicketHistoryService $ticketHistoryService,
+        private TicketService $ticketService,
+        private DatabaseTransactionService $transactionService
+
+    )
+    {}
+
     public function handle(User $agent, int $ticketId): Ticket
     {
-        return DB::transaction(function () use ($agent, $ticketId) {
+        return $this->transactionService->run(
+            function () use ($agent, $ticketId) {
 
-            // Find the ticket and lock it
-            $ticket = Ticket::where('id', $ticketId)
-                ->lockForUpdate()
-                ->firstOrFail();
+            // Find and lock the ticket for update
+            $ticket = $this->ticketService
+                ->findAndLock($ticketId);
 
-            // Check if the ticket is resolved
-            if ($ticket->status === 'resolved') {
-                abort(409, 'Resolved tickets cannot be claimed.');
-            }
+            //claim ticket by the agent
+            $this->assignmentService
+                ->claim($ticket, $agent);
 
-            // Check if an active agent already exists
-            if ($ticket->activeAssignment()->exists()) {
-                abort(409, 'Ticket is already assigned.');
-            }
-
-            // Create agent assignment
-            $ticket->assignments()->create([
-                'agent_id' => $agent->id,
-                'assigned_by' => $agent->id,
-                'assigned_at' => now(),
-                'unassigned_at' => null,
-                'reason' => null,
-            ]);
-
-            // Save ticket history
-            $ticket->history()->create([
-                'user_id' => $agent->id,
-                'action' => 'ticket_claimed',
-                'old_value' => null,
-                'new_value' => (string) $agent->id,
-            ]);
+            // Record the claim action in the ticket history
+            $this->ticketHistoryService->recordClaim($ticket, $agent);
 
             return $ticket;
+
         });
     }
 }

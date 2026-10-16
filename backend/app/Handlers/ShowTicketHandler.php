@@ -4,27 +4,30 @@ namespace App\Handlers;
 
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
+use App\Services\TicketService;
 
 class ShowTicketHandler
 {
+    public function __construct(
+        private TicketService $ticketService
+    ) {}
+
     public function handle(User $user, int $ticketId): Ticket
     {
-        $query = Ticket::query()->whereKey($ticketId);
-
-        //Customer can view only their own tickets
+        // Customer
         if ($user->hasRole('customer')) {
 
-            // Check permission to view own ticket(about_unless = ifnot true, abort)
-            abort_unless($user->can('view-own-ticket'), 403);
+            abort_unless(
+                $user->can('view-own-ticket'),
+                403
+            );
 
-            return Ticket::where('id', $ticketId)
-                ->where('customer_id', $user->id)
-                ->firstOrFail();
+            return $this->ticketService
+                ->findForCustomer($ticketId, $user);
         }
 
-        // Support Agent: View unassigned or own assigned tickets
-        elseif ($user->hasRole('support_agent')) {
+        // Support Agent
+        if ($user->hasRole('support_agent')) {
 
             abort_unless(
                 $user->can('view-unassigned-ticket') &&
@@ -32,35 +35,22 @@ class ShowTicketHandler
                 403
             );
 
-            $query->where(function ($q) use ($user) {
-
-                $q->whereDoesntHave('activeAssignment')
-                  ->orWhereHas('activeAssignment', function ($assignment) use ($user) {
-
-                      $assignment->where('agent_id', $user->id);
-
-                  });
-            });
-
+            return $this->ticketService
+                ->findForAgent($ticketId, $user);
         }
 
-        // Administrator: View any ticket
-        elseif ($user->hasRole('administrator')) {
+        // Administrator
+        if ($user->hasRole('administrator')) {
 
-            abort_unless($user->can('view-all-ticket'), 403);
+            abort_unless(
+                $user->can('view-all-ticket'),
+                403
+            );
 
-        } else {
-
-            abort(403, 'Unauthorized.');
+            return $this->ticketService
+                ->findForAdmin($ticketId);
         }
 
-        return $query
-            ->with([
-                'customer',
-                'activeAssignment.agent',
-                'replies.user',
-                'history.user'
-            ])
-            ->firstOrFail();
+        abort(403, 'Unauthorized.');
     }
 }
