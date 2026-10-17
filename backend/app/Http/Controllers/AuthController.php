@@ -9,6 +9,8 @@ use App\Handlers\LogoutHandler;
 use App\Handlers\RegisterHandler;
 use App\Http\Requests\RegisterRequest;
 use Illuminate\Http\JsonResponse;
+use App\Handlers\UpdateProfileHandler;
+use App\Http\Requests\UpdateProfileRequest;
 
 class AuthController extends Controller
 {
@@ -17,7 +19,7 @@ class AuthController extends Controller
         LoginRequest $request,
         LoginHandler $handler
     ): JsonResponse {
-        
+
         $result = $handler->handle(
             $request->validated()
         );
@@ -67,7 +69,7 @@ class AuthController extends Controller
         ]);
     }
     public function register(
-        RegisterRequest $request, 
+        RegisterRequest $request,
         RegisterHandler $handler
     ): JsonResponse
     {
@@ -84,4 +86,31 @@ class AuthController extends Controller
             ],
         ], 201);
     }
+
+    public function updateProfile(
+        UpdateProfileRequest $request,
+        UpdateProfileHandler $handler
+    ): JsonResponse {
+
+        // 1. Get validated data
+        $validated = $request->validated();
+
+        // 2. Update the authenticated user's profile
+        $user = $handler->handle(
+            $request->user(),
+            $validated
+        );
+
+        // 3. Return updated profile information
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully.',
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+        ], 200);
+    }
+
 }
