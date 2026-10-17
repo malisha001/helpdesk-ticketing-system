@@ -15,6 +15,10 @@ use App\Handlers\AssignTicketHandler;
 use App\Http\Requests\AssignTicketRequest;
 use App\Handlers\ReassignTicketHandler;
 use App\Http\Requests\ReassignTicketRequest;
+use App\Handlers\UpdateTicketStatusHandler;
+use App\Http\Requests\UpdateTicketStatusRequest;
+use App\Handlers\StoreTicketReplyHandler;
+use App\Http\Requests\StoreTicketReplyRequest;
 class TicketController extends Controller
 {
     public function store(
@@ -132,4 +136,57 @@ class TicketController extends Controller
             ],
         ], 200);
     }
+
+    public function updateStatus(
+        UpdateTicketStatusRequest $request,
+        UpdateTicketStatusHandler $handler,
+        int $id
+    ): JsonResponse {
+
+        $validated = $request->validated();
+
+        $ticket = $handler->handle(
+            $request->user(),
+            $id,
+            $validated['status']
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ticket status updated successfully.',
+            'data' => [
+                'id' => $ticket->id,
+                'status' => $ticket->status,
+            ],
+        ], 200);
+    }
+
+    public function storeReply(
+        StoreTicketReplyRequest $request,
+        StoreTicketReplyHandler $handler,
+        int $id
+    ): JsonResponse {
+
+        $validated = $request->validated();
+
+        $reply = $handler->handle(
+            $request->user(),
+            $id,
+            $validated['message']
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Reply added successfully.',
+            'data' => [
+                'id' => $reply->id,
+                'ticket_id' => $reply->ticket_id,
+                'user_id' => $reply->user_id,
+                'message' => $reply->message,
+                'created_at' => $reply->created_at,
+            ],
+        ], 201);
+    }
+
+
 }
