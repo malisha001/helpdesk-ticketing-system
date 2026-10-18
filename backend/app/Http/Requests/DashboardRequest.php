@@ -2,28 +2,36 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DashboardRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
+        $user = $this->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->hasRole('customer')) {
+            return $user->can('view-own-ticket');
+        }
+
+        if ($user->hasRole('support_agent')) {
+            return $user->can('view-assigned-ticket')
+                && $user->can('view-unassigned-ticket');
+        }
+
+        if ($user->hasRole('administrator')) {
+            return $user->can('view-all-ticket');
+        }
+
         return false;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 }
