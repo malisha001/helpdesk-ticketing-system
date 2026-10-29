@@ -1,8 +1,7 @@
-
 import { Suspense } from "react";
 import { getCurrentUser, type UserRole } from "@/lib/auth";
+import DashboardOverview from "@/features/tickets/DashboardOverview";
 
-// Dashboard content
 async function DashboardContent() {
   const user = await getCurrentUser();
 
@@ -15,11 +14,8 @@ async function DashboardContent() {
   } else if (user.roles.includes("customer")) {
     role = "customer";
   }
-
-  const dashboardInfo: Record<
-    UserRole,
-    { title: string; description: string }
-  > = {
+  
+  const dashboardInfo: Record<UserRole,{ title: string; description: string }> = {
     customer: {
       title: "Customer Dashboard",
       description: "Create and track your support tickets.",
@@ -65,7 +61,7 @@ async function DashboardContent() {
 export default function DashboardPage() {
   return (
     <Suspense fallback={<p className="p-8">Loading dashboard...</p>}>
-      <DashboardContent />
+      <DashboardOverview />
     </Suspense>
   );
 }

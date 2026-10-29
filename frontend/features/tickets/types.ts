@@ -81,3 +81,15 @@ export interface TicketDetailsResponse {
   success: boolean;
   data: TicketDetails;
 }
+
+export interface SupportAgent {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface TicketListFilters {
+  search: string;
+  status: TicketStatus | "";
+  priority: TicketPriority | "";
+}

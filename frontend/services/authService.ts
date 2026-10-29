@@ -1,5 +1,6 @@
 
 import { apiClient } from "./apiClient";
+import type { AuthUser } from "@/lib/auth";
 
 export interface LoginCredentials {
   email: string;
@@ -34,5 +35,10 @@ export async function logout(): Promise<LogoutResponse> {
     "/auth/logout"
   );
 
+  return response.data;
+}
+
+export async function getMe(): Promise<AuthUser> {
+  const response = await apiClient.get<AuthUser>("/auth/me");
   return response.data;
 }

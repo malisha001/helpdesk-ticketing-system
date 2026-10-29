@@ -4,10 +4,11 @@ namespace App\Handlers;
 
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\DatabaseTransactionService;
+use App\Services\TicketHistoryService;
+use App\Services\TicketNotificationService;
 use App\Services\TicketService;
 use App\Services\TicketStatusService;
-use App\Services\TicketHistoryService;
-use App\Services\DatabaseTransactionService;
 
 class UpdateTicketStatusHandler
 {
@@ -15,7 +16,8 @@ class UpdateTicketStatusHandler
         private TicketService $ticketService,
         private TicketStatusService $statusService,
         private TicketHistoryService $historyService,
-        private DatabaseTransactionService $transactionService
+        private DatabaseTransactionService $transactionService,
+        private TicketNotificationService $notificationService
     ) {}
 
     public function handle(
@@ -24,7 +26,7 @@ class UpdateTicketStatusHandler
         string $newStatus
     ): Ticket {
 
-        return $this->transactionService->run(
+        $ticket = $this->transactionService->run(
             function () use ($agent, $ticketId, $newStatus) {
 
                 // 1. Find and lock the ticket
@@ -47,5 +49,11 @@ class UpdateTicketStatusHandler
                 return $ticket;
             }
         );
+        // NEW: Dispatch only important status notifications
+        $this->notificationService->notifyTicketStatusChanged(
+            $ticket
+        );
+
+        return $ticket;
     }
 }

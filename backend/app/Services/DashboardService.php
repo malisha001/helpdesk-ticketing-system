@@ -7,7 +7,7 @@ use App\Models\User;
 
 class DashboardService
 {
-    // 1. Customer dashboard statistics
+    // Customer dashboard statistics
     public function customerStats(User $customer): array
     {
         $query = Ticket::query()
@@ -34,7 +34,7 @@ class DashboardService
         ];
     }
 
-    // 2. Support agent dashboard statistics
+    // Support agent dashboard statistics
     public function agentStats(User $agent): array
     {
         $assignedQuery = Ticket::query()
@@ -62,7 +62,7 @@ class DashboardService
         ];
     }
 
-    // 3. Administrator dashboard statistics
+    // Administrator dashboard statistics
     public function adminStats(): array
     {
         return [

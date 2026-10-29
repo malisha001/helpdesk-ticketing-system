@@ -1,8 +1,7 @@
-
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import CreateTicketForm from "@/features/tickets/components/CreateTicketForm";
+import CreateTicketForm from "@/features/tickets/CreateTicketForm";
 
 async function CustomerCreateTicket() {
   const user = await getCurrentUser();

@@ -1,7 +1,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+
 export async function GET(request: NextRequest) {
+  // 1. Read the HttpOnly token
   const token = request.cookies.get("helpdesk_token")?.value;
 
   if (!token) {
@@ -20,42 +22,59 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Forward pagination parameters
-  const page = request.nextUrl.searchParams.get("page") ?? "1";
-  const perPage =
-    request.nextUrl.searchParams.get("per_page") ?? "10";
+  // 2. Forward supported query parameters
+  const params = new URLSearchParams();
 
-  const params = new URLSearchParams({
-    page,
-    per_page: perPage,
-  });
+  const allowedParams = [
+    "page",
+    "search",
+    "status",
+    "priority",
+  ] as const;
+
+  for (const key of allowedParams) {
+    const value = request.nextUrl.searchParams.get(key);
+
+    if (value) {
+      params.set(key, value);
+    }
+  }
+
+  // 3. Construct the Laravel URL
+  const url = new URL(`${apiUrl}/tickets`);
+  url.search = params.toString();
 
   try {
-    const response = await fetch(
-      `${apiUrl}/tickets?${params.toString()}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-      }
+    // 4. Forward the authenticated request to Laravel
+    const laravelResponse = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    // 5. Return Laravel's result
+    const result = await laravelResponse.json().catch(
+      () => ({
+        message: "Unexpected response from Laravel.",
+      })
     );
 
-    const data = await response.json();
-
-    return NextResponse.json(data, {
-      status: response.status,
+    return NextResponse.json(result, {
+      status: laravelResponse.status,
+      headers: {
+        "Cache-Control": "private, no-store",
+      },
     });
   } catch {
     return NextResponse.json(
-      { message: "Unable to load tickets from Laravel." },
+      { message: "Unable to connect to Laravel." },
       { status: 502 }
     );
   }
 }
-
 
 export async function POST(request: NextRequest) {
   // 1. Reject cross-origin requests

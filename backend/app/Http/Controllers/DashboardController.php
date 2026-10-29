@@ -13,10 +13,9 @@ class DashboardController extends Controller
         DashboardHandler $handler
     ): JsonResponse {
 
-        // 1. Get dashboard statistics
+        // Get dashboard statistics
         $stats = $handler->handle($request->user());
 
-        // 2. Return JSON response
         return response()->json([
             'success' => true,
             'data' => $stats,

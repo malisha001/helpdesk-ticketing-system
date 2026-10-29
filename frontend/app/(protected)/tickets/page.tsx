@@ -1,5 +1,4 @@
-
-import TicketList from "@/features/tickets/components/TicketList";
+import TicketList from "@/features/tickets/TicketList";
 
 export default function TicketsPage() {
   return (

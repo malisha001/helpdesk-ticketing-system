@@ -12,12 +12,13 @@ class EnsureUserIsActive
     {
         $user = $request->user();
 
-        if (!$user && !$user->is_active) {
+        if (! $user->is_active) {
             return response()->json([
                 'success' => false,
                 'message' => 'Your account is inactive. Please contact support.',
             ], 403);
         }
+
         return $next($request);
     }
 }

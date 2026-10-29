@@ -1,14 +1,12 @@
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/auth";
-import TicketDetails from "@/features/tickets/components/TicketDetails";
+import TicketDetails from "@/features/tickets/TicketDetails";
 
 interface TicketDetailsPageProps {
   params: Promise<{ id: string }>;
 }
 
-async function TicketDetailsContent({
-  params,
-}: TicketDetailsPageProps) {
+async function TicketDetailsContent({ params }: TicketDetailsPageProps) {
   const { id } = await params;
 
   // Validate the user session
@@ -21,16 +19,10 @@ async function TicketDetailsContent({
   );
 }
 
-export default function TicketDetailsPage({
-  params,
-}: TicketDetailsPageProps) {
+export default function TicketDetailsPage({ params }: TicketDetailsPageProps) {
   return (
     <Suspense
-      fallback={
-        <p className="p-6 text-gray-500">
-          Loading ticket page...
-        </p>
-      }
+      fallback={<p className="p-6 text-gray-500">Loading ticket page...</p>}
     >
       <TicketDetailsContent params={params} />
     </Suspense>

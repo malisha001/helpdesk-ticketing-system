@@ -3,18 +3,16 @@
 namespace App\Handlers;
 
 use App\Models\User;
-use Laravel\Sanctum\PersonalAccessToken;
+use App\Services\AuthService;
 
 class LogoutHandler
 {
+    public function __construct(
+        private AuthService $authService
+    ) {}
+
     public function handle(User $user): void
     {
-        $token = $user->currentAccessToken();
-
-        if (!$token instanceof PersonalAccessToken) {
-            abort(400, 'Bearer token required for logout.');
-        }
-
-        $token->delete();
+        $this->authService->logout($user);
     }
 }

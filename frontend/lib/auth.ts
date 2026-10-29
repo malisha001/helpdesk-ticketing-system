@@ -61,8 +61,17 @@ export async function getCurrentUser(): Promise<AuthUser> {
     throw new Error("Failed to verify authentication.");
   }
 
-  // 4. Read the authenticated user
-  const result = (await response.json()) as MeResponse;
+  //Read the authenticated user
+  const result: unknown = await response.json();
+  return normalizeMeResponse(result);
+}
+
+export function normalizeMeResponse(value: unknown): AuthUser {
+  if (!value || typeof value !== "object") {
+    throw new Error("Invalid user response from Laravel.");
+  }
+
+  const result = value as MeResponse;
   const data = result.data;
 
   const user =
@@ -80,7 +89,7 @@ export async function getCurrentUser(): Promise<AuthUser> {
     throw new Error("Laravel /api/me must return user roles.");
   }
 
-  // 5. Convert Spatie roles into an array of role names
+  // Convert Spatie roles into an array of role names
   const allowedRoles: UserRole[] = [
     "customer",
     "support_agent",

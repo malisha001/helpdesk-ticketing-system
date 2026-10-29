@@ -3,8 +3,10 @@ import { useState, type SubmitEvent } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { login } from "@/services/authService";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function LoginPage() {
+  const queryClient = useQueryClient();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -26,8 +28,12 @@ const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
       password,
     });
 
+    // Clear any previous user's cached data
+    queryClient.clear();
+
     // Redirect after successful login
     router.replace("/dashboard");
+    //fresh Server Component data for the current route.
     router.refresh();
 
   } catch (error) {

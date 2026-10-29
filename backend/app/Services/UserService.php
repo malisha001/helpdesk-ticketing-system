@@ -4,15 +4,29 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Database\QueryException;
+use Spatie\Permission\Models\Role;
 
 class UserService
 {
+    public function createCustomer(array $data): User
+    {
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'is_active' => true,
+        ]);
+
+        $user->assignRole('customer');
+
+        return $user;
+    }
+
     public function listUsers(array $filters = []): LengthAwarePaginator
     {
         // 1. Start the user query
@@ -20,7 +34,7 @@ class UserService
             ->select(['id', 'name', 'email', 'is_active']);
 
         // 2. Search users by name or email
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
 
             $search = $filters['search'];
 
@@ -31,7 +45,7 @@ class UserService
         }
 
         // 3. Filter users by role
-        if (!empty($filters['role'])) {
+        if (! empty($filters['role'])) {
 
             $role = $filters['role'];
 
@@ -69,7 +83,6 @@ class UserService
         return $users;
     }
 
-
     public function updateActiveStatus(
         User $admin,
         int $userId,
@@ -88,13 +101,13 @@ class UserService
             ->firstOrFail();
 
         // 3. Prevent administrator from deactivating themselves
-        if (!$isActive && $user->id === $admin->id) {
+        if (! $isActive && $user->id === $admin->id) {
             abort(409, 'You cannot deactivate your own account.');
         }
 
         // 4. Prevent deactivating the last active administrator
         if (
-            !$isActive &&
+            ! $isActive &&
             (bool) $user->is_active &&
             $user->hasRole('administrator')
         ) {
@@ -112,7 +125,7 @@ class UserService
         $user->save();
 
         // 6. Revoke tokens when deactivating
-        if (!$isActive) {
+        if (! $isActive) {
             $user->tokens()->delete();
         }
 
@@ -177,22 +190,22 @@ class UserService
             throw $e;
         }
 
-        // 4. Assign support agent role
+        // Assign support agent role
         $user->assignRole('support_agent');
 
-        // 5. Return the created user
+        // Return the created user
         return $user;
     }
+
     public function updateProfile(User $user, array $data): User
     {
-        // 1. Update the authenticated user's name
+        // Update the authenticated user's name
         $user->name = $data['name'];
 
-        // 2. Save the changes to the database
+        // Save the changes to the database
         $user->save();
 
-        // 3. Return the updated user
+        // Return the updated user
         return $user;
     }
-    
 }

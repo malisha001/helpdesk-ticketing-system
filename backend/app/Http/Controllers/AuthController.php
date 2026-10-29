@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Handlers\LoginHandler;
-use App\Http\Requests\LoginRequest;
 use App\Handlers\LogoutHandler;
 use App\Handlers\RegisterHandler;
-use App\Http\Requests\RegisterRequest;
-use Illuminate\Http\JsonResponse;
 use App\Handlers\UpdateProfileHandler;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\UpdateProfileRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    //manage login requests
+    // manage login requests
     public function login(
         LoginRequest $request,
         LoginHandler $handler
@@ -42,7 +42,8 @@ class AuthController extends Controller
             ],
         ]);
     }
-    //manage user profile requests
+
+    // manage user profile requests
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -58,7 +59,8 @@ class AuthController extends Controller
             ],
         ], 200);
     }
-    //manage logout requests
+
+    // manage logout requests
     public function logout(Request $request, LogoutHandler $handler): JsonResponse
     {
         $handler->handle($request->user());
@@ -68,11 +70,11 @@ class AuthController extends Controller
             'message' => 'Logout successful',
         ]);
     }
+
     public function register(
         RegisterRequest $request,
         RegisterHandler $handler
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $user = $handler->handle($request->validated());
 
         return response()->json([
@@ -92,16 +94,16 @@ class AuthController extends Controller
         UpdateProfileHandler $handler
     ): JsonResponse {
 
-        // 1. Get validated data
+        // Get validated data
         $validated = $request->validated();
 
-        // 2. Update the authenticated user's profile
+        // Update the authenticated user's profile
         $user = $handler->handle(
             $request->user(),
             $validated
         );
 
-        // 3. Return updated profile information
+        // Return updated profile information
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully.',
@@ -112,5 +114,4 @@ class AuthController extends Controller
             ],
         ], 200);
     }
-
 }

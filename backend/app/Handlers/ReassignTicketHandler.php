@@ -4,10 +4,11 @@ namespace App\Handlers;
 
 use App\Models\Ticket;
 use App\Models\User;
-use App\Services\TicketService;
+use App\Services\DatabaseTransactionService;
 use App\Services\TicketAssignmentService;
 use App\Services\TicketHistoryService;
-use App\Services\DatabaseTransactionService;
+use App\Services\TicketNotificationService;
+use App\Services\TicketService;
 
 class ReassignTicketHandler
 {
@@ -15,7 +16,8 @@ class ReassignTicketHandler
         private TicketService $ticketService,
         private TicketAssignmentService $assignmentService,
         private TicketHistoryService $historyService,
-        private DatabaseTransactionService $transactionService
+        private DatabaseTransactionService $transactionService,
+        private TicketNotificationService $notificationService
     ) {}
 
     public function handle(
@@ -25,7 +27,7 @@ class ReassignTicketHandler
         ?string $reason = null
     ): Ticket {
 
-        return $this->transactionService->run(
+        $ticket = $this->transactionService->run(
             function () use ($admin, $ticketId, $newAgentId, $reason) {
 
                 // 1. Find and lock the ticket
@@ -52,5 +54,11 @@ class ReassignTicketHandler
                 return $ticket;
             }
         );
+        $this->notificationService->notifyTicketReassigned(
+            $ticket,
+            $newAgentId
+        );
+
+        return $ticket;
     }
 }

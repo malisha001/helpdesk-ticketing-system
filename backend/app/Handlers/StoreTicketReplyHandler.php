@@ -4,11 +4,12 @@ namespace App\Handlers;
 
 use App\Models\TicketReply;
 use App\Models\User;
-use App\Services\TicketService;
-use App\Services\TicketReplyService;
-use App\Services\TicketStatusService;
-use App\Services\TicketHistoryService;
 use App\Services\DatabaseTransactionService;
+use App\Services\TicketHistoryService;
+use App\Services\TicketNotificationService;
+use App\Services\TicketReplyService;
+use App\Services\TicketService;
+use App\Services\TicketStatusService;
 
 class StoreTicketReplyHandler
 {
@@ -17,7 +18,8 @@ class StoreTicketReplyHandler
         private TicketReplyService $replyService,
         private TicketStatusService $statusService,
         private TicketHistoryService $historyService,
-        private DatabaseTransactionService $transactionService
+        private DatabaseTransactionService $transactionService,
+        private TicketNotificationService $notificationService
     ) {}
 
     public function handle(
@@ -26,7 +28,7 @@ class StoreTicketReplyHandler
         string $message
     ): TicketReply {
 
-        return $this->transactionService->run(
+        $reply = $this->transactionService->run(
             function () use ($user, $ticketId, $message) {
 
                 // 1. Find and lock ticket
@@ -59,5 +61,13 @@ class StoreTicketReplyHandler
                 return $reply;
             }
         );
+
+        $this->notificationService->notifyTicketReplied(
+            $ticketId,
+            $user
+        );
+
+        return $reply;
+
     }
 }

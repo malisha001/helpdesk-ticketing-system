@@ -4,12 +4,11 @@ namespace App\Handlers;
 
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Container\Attributes\Database;
-use Illuminate\Support\Facades\DB;
+use App\Services\DatabaseTransactionService;
 use App\Services\TicketAssignmentService;
 use App\Services\TicketHistoryService;
+use App\Services\TicketNotificationService;
 use App\Services\TicketService;
-use App\Services\DatabaseTransactionService;
 
 class ClaimTicketHandler
 {
@@ -17,29 +16,35 @@ class ClaimTicketHandler
         private TicketAssignmentService $assignmentService,
         private TicketHistoryService $ticketHistoryService,
         private TicketService $ticketService,
-        private DatabaseTransactionService $transactionService
-
-    )
-    {}
+        private DatabaseTransactionService $transactionService,
+        private TicketNotificationService $notificationService
+    ) {}
 
     public function handle(User $agent, int $ticketId): Ticket
     {
-        return $this->transactionService->run(
+        $ticket = $this->transactionService->run(
             function () use ($agent, $ticketId) {
 
-            // Find and lock the ticket for update
-            $ticket = $this->ticketService
-                ->findAndLock($ticketId);
+                // Find and lock the ticket for update
+                $ticket = $this->ticketService
+                    ->findAndLock($ticketId);
 
-            //claim ticket by the agent
-            $this->assignmentService
-                ->claim($ticket, $agent);
+                // claim ticket by the agent
+                $this->assignmentService
+                    ->claim($ticket, $agent);
 
-            // Record the claim action in the ticket history
-            $this->ticketHistoryService->recordClaim($ticket, $agent);
+                // Record the claim action in the ticket history
+                $this->ticketHistoryService->recordClaim($ticket, $agent);
 
-            return $ticket;
+                return $ticket;
 
-        });
+            });
+        // NEW: Notify the customer after the successful claim
+        $this->notificationService->notifyTicketClaimed(
+            $ticket,
+            $agent
+        );
+
+        return $ticket;
     }
 }
