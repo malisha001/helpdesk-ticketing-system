@@ -27,23 +27,23 @@ class AssignTicketHandler
         return $this->transactionService->run(
             function () use ($admin, $ticketId, $agentId) {
 
-                // 1. Find and lock the ticket
+                // Find and lock the ticket
                 $ticket = $this->ticketService
                     ->findAndLock($ticketId);
 
-                // 2. Find an eligible support agent
+                // Find an eligible support agent
                 $agent = $this->assignmentService
                     ->findEligibleAgent($agentId);
 
-                // 3. Assign the ticket
+                // Assign the ticket
                 $this->assignmentService
                     ->assign($ticket, $agent, $admin);
 
-                // 4. Record ticket history
+                // Record ticket history
                 $this->historyService
                     ->recordAssignment($ticket, $agent, $admin);
 
-                // 5. Return the ticket
+                // Return the ticket
                 return $ticket;
             }
         );
