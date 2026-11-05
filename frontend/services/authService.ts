@@ -12,6 +12,21 @@ export interface LoginResponse {
   message: string;
 }
 
+export interface RegisterCredentials {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  data: Pick<AuthUser, "id" | "name" | "email"> & {
+    role: "customer";
+  };
+}
+
 export interface LogoutResponse {
   success: boolean;
   serverRevoked: boolean;
@@ -33,6 +48,17 @@ export async function login(
 export async function logout(): Promise<LogoutResponse> {
   const response = await apiClient.post<LogoutResponse>(
     "/auth/logout"
+  );
+
+  return response.data;
+}
+
+export async function register(
+  credentials: RegisterCredentials
+): Promise<RegisterResponse> {
+  const response = await apiClient.post<RegisterResponse>(
+    "/auth/register",
+    credentials
   );
 
   return response.data;

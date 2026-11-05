@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Handlers\LoginHandler;
 use App\Handlers\LogoutHandler;
 use App\Handlers\RegisterHandler;
@@ -17,10 +18,10 @@ class AuthController extends Controller
     // manage login requests
     public function login(
         LoginRequest $request,
-        LoginHandler $handler
+        LoginHandler $loginHandler
     ): JsonResponse {
 
-        $result = $handler->handle(
+        $result = $loginHandler->handle(
             $request->validated()
         );
 
@@ -61,9 +62,9 @@ class AuthController extends Controller
     }
 
     // manage logout requests
-    public function logout(Request $request, LogoutHandler $handler): JsonResponse
+    public function logout(Request $request, LogoutHandler $logoutHandler): JsonResponse
     {
-        $handler->handle($request->user());
+        $logoutHandler->handle($request->user());
 
         return response()->json([
             'success' => true,
@@ -73,9 +74,9 @@ class AuthController extends Controller
 
     public function register(
         RegisterRequest $request,
-        RegisterHandler $handler
+        RegisterHandler $registerHandler
     ): JsonResponse {
-        $user = $handler->handle($request->validated());
+        $user = $registerHandler->handle($request->validated());
 
         return response()->json([
             'success' => true,
@@ -84,21 +85,21 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => 'customer',
+                'role' => UserRole::Customer->value,
             ],
         ], 201);
     }
 
     public function updateProfile(
         UpdateProfileRequest $request,
-        UpdateProfileHandler $handler
+        UpdateProfileHandler $updateProfileHandler
     ): JsonResponse {
 
         // Get validated data
         $validated = $request->validated();
 
         // Update the authenticated user's profile
-        $user = $handler->handle(
+        $user = $updateProfileHandler->handle(
             $request->user(),
             $validated
         );

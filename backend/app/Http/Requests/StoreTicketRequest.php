@@ -2,8 +2,9 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
+use App\Enums\TicketPriority;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreTicketRequest extends FormRequest
 {
@@ -12,7 +13,7 @@ class StoreTicketRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('create-ticket')?? false;
+        return $this->user()?->can('create-ticket') ?? false;
     }
 
     public function rules(): array
@@ -20,7 +21,14 @@ class StoreTicketRequest extends FormRequest
         return [
             'subject' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'priority' => ['required', 'in:low,medium,high'],
+            'priority' => ['required', Rule::enum(TicketPriority::class)],
+            'attachments' => ['sometimes', 'array', 'max:'.config('ticket_attachments.max_files')],
+            'attachments.*' => [
+                'required', 'file',
+                'mimes:'.implode(',', config('ticket_attachments.allowed_extensions')),
+                'extensions:'.implode(',', config('ticket_attachments.allowed_extensions')),
+                'max:'.config('ticket_attachments.max_size_kb'),
+            ],
         ];
     }
 }

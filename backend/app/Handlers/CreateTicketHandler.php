@@ -5,9 +5,11 @@ namespace App\Handlers;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\DatabaseTransactionService;
+use App\Services\NotificationService;
+use App\Services\TicketAttachmentService;
 use App\Services\TicketHistoryService;
-use App\Services\TicketNotificationService;
 use App\Services\TicketService;
+use Throwable;
 
 class CreateTicketHandler
 {
@@ -15,7 +17,8 @@ class CreateTicketHandler
         private TicketService $ticketService,
         private TicketHistoryService $historyService,
         private DatabaseTransactionService $transactionService,
-        private TicketNotificationService $notificationService
+        private NotificationService $notificationService,
+        private TicketAttachmentService $attachmentService,
     ) {}
 
     public function handle(
@@ -23,25 +26,32 @@ class CreateTicketHandler
         User $customer
     ): Ticket {
 
-        // 1. Create the ticket and history in a transaction
-        $ticket = $this->transactionService->run(
-            function () use ($validated, $customer) {
+        $storedFiles = [];
+        try {
+            $ticket = $this->transactionService->run(
+                function () use ($validated, $customer, &$storedFiles) {
 
-                // Create ticket through TicketService
-                $ticket = $this->ticketService->create(
-                    $validated,
-                    $customer
-                );
+                    // Create ticket through TicketService
+                    $ticket = $this->ticketService->create(
+                        $validated,
+                        $customer
+                    );
 
-                // Record ticket creation in history
-                $this->historyService->recordCreation(
-                    $ticket,
-                    $customer
-                );
+                    // Record ticket creation in history
+                    $this->historyService->recordCreation(
+                        $ticket,
+                        $customer
+                    );
 
-                return $ticket;
-            }
-        );
+                    $this->attachmentService->storeForTicket($ticket, $customer, $validated['attachments'] ?? [], $storedFiles);
+
+                    return $ticket;
+                }
+            );
+        } catch (Throwable $exception) {
+            $this->attachmentService->removeNewFiles($storedFiles);
+            throw $exception;
+        }
 
         // 2. Transaction succeeded.
         // Dispatch the confirmation notification.

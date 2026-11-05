@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\TicketStatus;
+use App\Enums\UserRole;
 use App\Models\Ticket;
 use App\Models\TicketAgent;
 use App\Models\User;
@@ -12,7 +14,7 @@ class TicketAssignmentService
     // Existing agent claim function
     public function claim(Ticket $ticket, User $agent): TicketAgent
     {
-        if ($ticket->status === 'resolved') {
+        if ($ticket->status === TicketStatus::Resolved->value) {
             abort(409, 'Resolved tickets cannot be claimed.');
         }
 
@@ -35,9 +37,9 @@ class TicketAssignmentService
         $agent = User::find($agentId);
 
         if (
-            !$agent ||
-            !$agent->is_active ||
-            !$agent->hasRole('support_agent')
+            ! $agent ||
+            ! $agent->is_active ||
+            ! $agent->hasRole(UserRole::SupportAgent->value)
         ) {
             throw ValidationException::withMessages([
                 'agent_id' => 'Please select an active support agent.',
@@ -54,7 +56,7 @@ class TicketAssignmentService
         User $admin
     ): TicketAgent {
 
-        if ($ticket->status === 'resolved') {
+        if ($ticket->status === TicketStatus::Resolved->value) {
             abort(409, 'Resolved tickets cannot be assigned.');
         }
 
@@ -78,19 +80,19 @@ class TicketAssignmentService
         ?string $reason = null
     ): array {
 
-        // 1. Check ticket status
-        if ($ticket->status === 'resolved') {
+        // Check ticket status
+        if ($ticket->status === TicketStatus::Resolved->value) {
             abort(409, 'Resolved tickets cannot be reassigned.');
         }
 
-        // 2. Find current active assignment
+        // Find current active assignment
         $currentAssignment = $ticket->activeAssignment()->first();
 
-        if (!$currentAssignment) {
+        if (! $currentAssignment) {
             abort(409, 'Ticket is not currently assigned.');
         }
 
-        // 3. Check if the agent is the same
+        // Check if the agent is the same
         if ($currentAssignment->agent_id == $newAgent->id) {
             abort(409, 'Ticket is already assigned to this agent.');
         }
@@ -100,13 +102,13 @@ class TicketAssignmentService
 
         $reassignedAt = now();
 
-        // 4. Close previous assignment
+        // Close previous assignment
         $currentAssignment->update([
             'unassigned_at' => $reassignedAt,
             'reason' => $reason,
         ]);
 
-        // 5. Create new assignment
+        // Create new assignment
         $newAssignment = $ticket->assignments()->create([
             'agent_id' => $newAgent->id,
             'assigned_by' => $admin->id,
@@ -120,5 +122,4 @@ class TicketAssignmentService
             'assignment' => $newAssignment,
         ];
     }
-
 }

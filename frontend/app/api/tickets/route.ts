@@ -107,7 +107,15 @@ export async function POST(request: NextRequest) {
   }
 
   // 3. Read and validate request body
-  const body: unknown = await request.json().catch(() => null);
+  if (Number(request.headers.get("content-length")) > 30 * 1024 * 1024) {
+    return NextResponse.json({ message: "The upload request is too large." }, { status: 413 });
+  }
+
+  const isMultipart = request.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data") ?? false;
+  const form = isMultipart ? await request.formData().catch(() => null) : null;
+  const body: unknown = isMultipart
+    ? (form ? Object.fromEntries(form.entries()) : null)
+    : await request.json().catch(() => null);
 
   if (
     !body ||
@@ -139,27 +147,33 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    let forwardedBody: FormData | string;
+    if (form) {
+      form.set("subject", subject.trim());
+      form.set("description", description.trim());
+      forwardedBody = form;
+    } else {
+      forwardedBody = JSON.stringify({ ...body, subject: subject.trim(), description: description.trim(), priority });
+    }
+
     // 4. Forward the request to Laravel
     const response = await fetch(`${apiUrl}/tickets`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        ...(!form && { "Content-Type": "application/json" }),
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        subject: subject.trim(),
-        description: description.trim(),
-        priority,
-      }),
+      body: forwardedBody,
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => ({ message: "Unexpected response from Laravel." }));
 
     // 5. Preserve Laravel's response and status
     return NextResponse.json(result, {
       status: response.status,
+      headers: { "Cache-Control": "private, no-store" },
     });
   } catch {
     return NextResponse.json(

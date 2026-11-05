@@ -60,8 +60,14 @@ async function DashboardContent() {
 // Default export required by Next.js
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<p className="p-8">Loading dashboard...</p>}>
-      <DashboardOverview />
-    </Suspense>
+    <main className="page-shell space-y-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-500">An overview of your support workspace.</p>
+      </header>
+      <Suspense fallback={<p role="status" className="panel p-6 text-sm text-slate-500">Loading dashboard...</p>}>
+        <DashboardOverview />
+      </Suspense>
+    </main>
   );
 }

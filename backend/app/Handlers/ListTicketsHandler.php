@@ -2,6 +2,7 @@
 
 namespace App\Handlers;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -18,7 +19,7 @@ class ListTicketsHandler
     ): LengthAwarePaginator {
 
         // Customer tickets
-        if ($user->hasRole('customer')) {
+        if ($user->hasRole(UserRole::Customer->value)) {
 
             abort_unless($user->can('view-own-ticket'), 403);
 
@@ -27,7 +28,7 @@ class ListTicketsHandler
         }
 
         // Support agent tickets
-        if ($user->hasRole('support_agent')) {
+        if ($user->hasRole(UserRole::SupportAgent->value)) {
 
             abort_unless(
                 $user->can('view-unassigned-ticket') &&
@@ -40,7 +41,7 @@ class ListTicketsHandler
         }
 
         // Administrator tickets
-        if ($user->hasRole('administrator')) {
+        if ($user->hasRole(UserRole::Administrator->value)) {
 
             abort_unless($user->can('view-all-ticket'), 403);
 

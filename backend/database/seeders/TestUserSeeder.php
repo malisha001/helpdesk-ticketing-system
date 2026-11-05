@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
+use App\Models\User;
 use Hash;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class TestUserSeeder extends Seeder
@@ -13,7 +14,7 @@ class TestUserSeeder extends Seeder
      */
     public function run(): void
     {
-        if(!app()->environment('local')){
+        if (! app()->environment('local')) {
             return;
         }
 
@@ -21,22 +22,22 @@ class TestUserSeeder extends Seeder
             [
                 'name' => 'Test Customer',
                 'email' => 'customer@test.com',
-                'roles' => 'customer',
+                'roles' => UserRole::Customer->value,
             ],
             [
                 'name' => 'Test Agent',
                 'email' => 'agent@test.com',
-                'roles' => 'support_agent',
+                'roles' => UserRole::SupportAgent->value,
             ],
             [
                 'name' => 'Test Admin',
                 'email' => 'admin@test.com',
-                'roles' => 'administrator',
+                'roles' => UserRole::Administrator->value,
             ],
         ];
 
         foreach ($users as $userData) {
-            $user = \App\Models\User::firstOrCreate(
+            $user = User::firstOrCreate(
                 ['email' => $userData['email']],
                 [
                     'name' => $userData['name'],

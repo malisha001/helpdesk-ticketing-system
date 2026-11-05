@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ClaimTicketRequest extends FormRequest
@@ -11,12 +11,11 @@ class ClaimTicketRequest extends FormRequest
     {
         $user = $this->user();
 
-        if(!$user)
-        {
+        if (! $user) {
             return false;
         }
 
-        return $user->hasRole('support_agent') 
+        return $user->hasRole(UserRole::SupportAgent->value)
             && $user->can('claim-ticket');
     }
 

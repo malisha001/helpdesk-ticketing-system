@@ -2,6 +2,7 @@
 
 namespace App\Handlers;
 
+use App\Enums\UserRole;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\TicketService;
@@ -15,7 +16,7 @@ class ShowTicketHandler
     public function handle(User $user, int $ticketId): Ticket
     {
         // Customer
-        if ($user->hasRole('customer')) {
+        if ($user->hasRole(UserRole::Customer->value)) {
 
             abort_unless(
                 $user->can('view-own-ticket'),
@@ -27,7 +28,7 @@ class ShowTicketHandler
         }
 
         // Support Agent
-        if ($user->hasRole('support_agent')) {
+        if ($user->hasRole(UserRole::SupportAgent->value)) {
 
             abort_unless(
                 $user->can('view-unassigned-ticket') &&
@@ -40,7 +41,7 @@ class ShowTicketHandler
         }
 
         // Administrator
-        if ($user->hasRole('administrator')) {
+        if ($user->hasRole(UserRole::Administrator->value)) {
 
             abort_unless(
                 $user->can('view-all-ticket'),

@@ -1,7 +1,9 @@
 "use client";
 import { useState, type SubmitEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { toast } from "sonner";
 import { login } from "@/services/authService";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -13,13 +15,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
 const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
   e.preventDefault();
 
   setLoading(true);
-  setError("");
 
   try {
     // Call our authentication service
@@ -30,6 +30,7 @@ const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
 
     // Clear any previous user's cached data
     queryClient.clear();
+    toast.success("Logged in successfully");
 
     // Redirect after successful login
     router.replace("/dashboard");
@@ -38,14 +39,11 @@ const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
 
   } catch (error) {
 
-    if (axios.isAxiosError<{ message?: string }>(error)) {
-      setError(
-        error.response?.data?.message ||
-        "Unable to connect to the login service."
-      );
-    } else {
-      setError("Something went wrong. Please try again.");
-    }
+    toast.error(
+      axios.isAxiosError(error) && error.response?.status === 401
+        ? "Invalid email or password"
+        : "Failed to log in. Please try again."
+    );
 
   } finally {
     setLoading(false);
@@ -53,20 +51,20 @@ const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
 };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
 
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
+      <div className="panel w-full max-w-md p-6 sm:p-8">
 
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-blue-600">
+          <h1 className="text-xl font-semibold tracking-tight text-blue-600">
             HelpDesk
           </h1>
 
-          <h2 className="mt-3 text-2xl font-semibold text-gray-900">
+          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-900">
             Welcome Back
           </h2>
 
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-slate-500">
             Sign in to manage your support tickets.
           </p>
         </div>
@@ -76,7 +74,7 @@ const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
           <div>
             <label
               htmlFor="email"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              className="mb-2 block text-sm font-medium text-slate-700"
             >
               Email Address
             </label>
@@ -89,14 +87,14 @@ const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
               required
               autoComplete="email"
               placeholder="Enter your email"
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-blue-500"
+              className="form-control"
             />
           </div>
 
           <div>
             <label
               htmlFor="password"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              className="mb-2 block text-sm font-medium text-slate-700"
             >
               Password
             </label>
@@ -109,27 +107,28 @@ const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
               required
               autoComplete="current-password"
               placeholder="Enter your password"
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-blue-500"
+              className="form-control"
             />
           </div>
-
-          {error && (
-            <p role="alert" className="text-sm text-red-600">
-              {error}
-            </p>
-          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            className="btn-primary w-full"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
 
         </form>
 
-        <p className="mt-8 text-center text-xs text-gray-400">
+        <p className="mt-6 text-center text-sm text-slate-600">
+          New to HelpDesk?{" "}
+          <Link href="/register" className="font-medium text-blue-600 hover:underline">
+            Create Account
+          </Link>
+        </p>
+
+        <p className="mt-8 text-center text-xs text-slate-500">
           Helpdesk Ticketing System
         </p>
 

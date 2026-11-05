@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -21,7 +22,7 @@ class TicketAssignmentNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', 'broadcast'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -42,5 +43,35 @@ class TicketAssignmentNotification extends Notification implements ShouldQueue
             ->line("Subject: {$this->ticketSubject}")
             ->line('Please log in to HelpDesk to review the ticket.')
             ->line('Thank you.');
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        $event = $this->isReassignment
+            ? 'ticket_reassigned'
+            : 'ticket_assigned';
+
+        $title = $this->isReassignment
+            ? "Ticket #{$this->ticketId} Reassigned to You"
+            : "Ticket #{$this->ticketId} Assigned to You";
+
+        $message = $this->isReassignment
+            ? 'A support ticket has been reassigned to you.'
+            : 'A new support ticket has been assigned to you.';
+
+        return [
+            'event' => $event,
+            'title' => $title,
+            'message' => $message,
+            'ticket_id' => $this->ticketId,
+            'url' => "/tickets/{$this->ticketId}",
+        ];
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage(
+            $this->toDatabase($notifiable)
+        );
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
@@ -22,7 +23,7 @@ class UserService
             'is_active' => true,
         ]);
 
-        $user->assignRole('customer');
+        $user->assignRole(UserRole::Customer->value);
 
         return $user;
     }
@@ -34,7 +35,7 @@ class UserService
             ->select(['id', 'name', 'email', 'is_active']);
 
         // 2. Search users by name or email
-        if (! empty($filters['search'])) {
+        if (isset($filters['search']) && $filters['search'] !== '') {
 
             $search = $filters['search'];
 
@@ -55,7 +56,7 @@ class UserService
         }
 
         // 4. Filter active or inactive users
-        if (array_key_exists('is_active', $filters)) {
+        if (isset($filters['is_active']) && $filters['is_active'] !== '') {
             $query->where(
                 'is_active',
                 (bool) $filters['is_active']
@@ -90,7 +91,7 @@ class UserService
     ): User {
 
         // 1. Serialize status updates to protect the last administrator
-        Role::where('name', 'administrator')
+        Role::where('name', UserRole::Administrator->value)
             ->where('guard_name', 'web')
             ->lockForUpdate()
             ->firstOrFail();
@@ -109,9 +110,9 @@ class UserService
         if (
             ! $isActive &&
             (bool) $user->is_active &&
-            $user->hasRole('administrator')
+            $user->hasRole(UserRole::Administrator->value)
         ) {
-            $activeAdminCount = User::role('administrator')
+            $activeAdminCount = User::role(UserRole::Administrator->value)
                 ->where('is_active', true)
                 ->count();
 
@@ -191,7 +192,7 @@ class UserService
         }
 
         // Assign support agent role
-        $user->assignRole('support_agent');
+        $user->assignRole(UserRole::SupportAgent->value);
 
         // Return the created user
         return $user;
@@ -206,6 +207,31 @@ class UserService
         $user->save();
 
         // Return the updated user
+        return $user;
+    }
+
+    public function setActiveStatus(
+        User $admin,
+        int $userId,
+        bool $isActive
+    ): User {
+        $user = User::findOrFail($userId);
+
+        // Do not allow administrator accounts to be modified
+        // through this feature, including the current admin.
+        if (
+            $user->id === $admin->id ||
+            $user->hasRole(UserRole::Administrator->value)
+        ) {
+            throw ValidationException::withMessages([
+                'user' => 'Administrator accounts cannot be modified here.',
+            ]);
+        }
+
+        // Direct assignment does not depend on $fillable
+        $user->is_active = $isActive;
+        $user->save();
+
         return $user;
     }
 }

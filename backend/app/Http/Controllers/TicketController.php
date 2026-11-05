@@ -2,32 +2,45 @@
 
 namespace App\Http\Controllers;
 
+use App\Handlers\AssignTicketHandler;
+use App\Handlers\ClaimTicketHandler;
 use App\Handlers\CreateTicketHandler;
+use App\Handlers\DownloadTicketAttachmentHandler;
 use App\Handlers\ListTicketsHandler;
+use App\Handlers\ReassignTicketHandler;
 use App\Handlers\ShowTicketHandler;
+use App\Handlers\StoreTicketReplyHandler;
+use App\Handlers\UpdateTicketStatusHandler;
+use App\Http\Requests\AssignTicketRequest;
+use App\Http\Requests\ClaimTicketRequest;
+use App\Http\Requests\DownloadTicketAttachmentRequest;
 use App\Http\Requests\ListTicketsRequest;
+use App\Http\Requests\ReassignTicketRequest;
+use App\Http\Requests\StoreTicketReplyRequest;
 use App\Http\Requests\StoreTicketRequest;
+use App\Http\Requests\UpdateTicketStatusRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Handlers\ClaimTicketHandler;
-use App\Http\Requests\ClaimTicketRequest;
-use App\Handlers\AssignTicketHandler;
-use App\Http\Requests\AssignTicketRequest;
-use App\Handlers\ReassignTicketHandler;
-use App\Http\Requests\ReassignTicketRequest;
-use App\Handlers\UpdateTicketStatusHandler;
-use App\Http\Requests\UpdateTicketStatusRequest;
-use App\Handlers\StoreTicketReplyHandler;
-use App\Http\Requests\StoreTicketReplyRequest;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
 class TicketController extends Controller
 {
+    public function downloadAttachment(
+        DownloadTicketAttachmentRequest $request,
+        DownloadTicketAttachmentHandler $downloadTicketAttachmentHandler,
+        int $id,
+        int $attachment,
+    ): StreamedResponse {
+        return $downloadTicketAttachmentHandler->handle($request->user(), $id, $attachment);
+    }
+
     public function store(
         StoreTicketRequest $request,
-        CreateTicketHandler $handler
+        CreateTicketHandler $createTicketHandler
     ): JsonResponse {
 
         // Create a new ticket using the validated data
-        $ticket = $handler->handle(
+        $ticket = $createTicketHandler->handle(
             $request->validated(),
             $request->user()
         );
@@ -39,12 +52,13 @@ class TicketController extends Controller
             'ticket' => $ticket,
         ], 201);
     }
+
     public function index(
         ListTicketsRequest $request,
-        ListTicketsHandler $handler
+        ListTicketsHandler $listTicketsHandler
     ): JsonResponse {
         // Get the list of tickets for the authenticated user
-        $tickets = $handler->handle(
+        $tickets = $listTicketsHandler->handle(
             $request->user(),
             $request->validated()
         );
@@ -61,25 +75,27 @@ class TicketController extends Controller
             ],
         ]);
     }
+
     public function show(
         Request $request,
-        ShowTicketHandler $handler,
+        ShowTicketHandler $showTicketHandler,
         int $id
     ): JsonResponse {
-        $ticket = $handler->handle($request->user(), $id);
+        $ticket = $showTicketHandler->handle($request->user(), $id);
 
         return response()->json([
             'success' => true,
             'data' => $ticket,
-        ],200);
+        ], 200);
     }
+
     public function claim(
         ClaimTicketRequest $request,
-        ClaimTicketHandler $handler,
+        ClaimTicketHandler $claimTicketHandler,
         int $id
     ): JsonResponse {
 
-        $ticket = $handler->handle($request->user(), $id);
+        $ticket = $claimTicketHandler->handle($request->user(), $id);
 
         return response()->json([
             'success' => true,
@@ -90,11 +106,11 @@ class TicketController extends Controller
 
     public function assign(
         AssignTicketRequest $request,
-        AssignTicketHandler $handler,
+        AssignTicketHandler $assignTicketHandler,
         int $id
     ): JsonResponse {
 
-        $ticket = $handler->handle(
+        $ticket = $assignTicketHandler->handle(
             $request->user(),
             $id,
             (int) $request->validated('agent_id')
@@ -113,13 +129,13 @@ class TicketController extends Controller
 
     public function reassign(
         ReassignTicketRequest $request,
-        ReassignTicketHandler $handler,
+        ReassignTicketHandler $reassignTicketHandler,
         int $id
     ): JsonResponse {
 
         $validated = $request->validated();
 
-        $ticket = $handler->handle(
+        $ticket = $reassignTicketHandler->handle(
             $request->user(),
             $id,
             (int) $validated['agent_id'],
@@ -139,13 +155,13 @@ class TicketController extends Controller
 
     public function updateStatus(
         UpdateTicketStatusRequest $request,
-        UpdateTicketStatusHandler $handler,
+        UpdateTicketStatusHandler $updateTicketStatusHandler,
         int $id
     ): JsonResponse {
 
         $validated = $request->validated();
 
-        $ticket = $handler->handle(
+        $ticket = $updateTicketStatusHandler->handle(
             $request->user(),
             $id,
             $validated['status']
@@ -163,13 +179,13 @@ class TicketController extends Controller
 
     public function storeReply(
         StoreTicketReplyRequest $request,
-        StoreTicketReplyHandler $handler,
+        StoreTicketReplyHandler $storeTicketReplyHandler,
         int $id
     ): JsonResponse {
 
         $validated = $request->validated();
 
-        $reply = $handler->handle(
+        $reply = $storeTicketReplyHandler->handle(
             $request->user(),
             $id,
             $validated['message']
@@ -187,6 +203,4 @@ class TicketController extends Controller
             ],
         ], 201);
     }
-
-
 }

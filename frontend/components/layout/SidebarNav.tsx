@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -39,6 +38,7 @@ export default function SidebarNav({
     },
   ];
 
+  // Customer navigation
   if (isCustomer) {
     links.push({
       label: "Create Ticket",
@@ -46,24 +46,33 @@ export default function SidebarNav({
     });
   }
 
+  // Administrator navigation
+  if (isAdministrator) {
+    links.push({
+      label: "Manage Users",
+      href: "/users",
+    });
+  }
+
   return (
-    <nav className="space-y-2" aria-label="Main navigation">
+    <nav className="grid grid-cols-2 gap-1 md:grid-cols-1" aria-label="Main navigation">
       {links.map((link) => {
         const isActive =
           link.href === "/tickets"
             ? pathname === "/tickets" ||
               (pathname.startsWith("/tickets/") &&
                 pathname !== "/tickets/create")
-            : pathname === link.href;
+            : pathname === link.href ||
+              pathname.startsWith(`${link.href}/`);
 
         return (
           <Link
             key={link.href}
             href={link.href}
             aria-current={isActive ? "page" : undefined}
-            className={`block rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+            className={`block rounded-lg px-3 py-2.5 text-sm font-medium ${
               isActive
-                ? "bg-slate-800 text-white"
+                ? "bg-blue-600 text-white"
                 : "text-slate-300 hover:bg-slate-800 hover:text-white"
             }`}
           >
@@ -71,12 +80,6 @@ export default function SidebarNav({
           </Link>
         );
       })}
-
-      {isAdministrator && (
-        <span className="block cursor-not-allowed px-4 py-3 text-sm text-slate-500">
-          Manage Users · Soon
-        </span>
-      )}
     </nav>
   );
 }

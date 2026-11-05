@@ -6,6 +6,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Notifications\TicketAssignmentNotification;
 use App\Notifications\TicketClaimedNotification;
+use App\Notifications\TicketCreatedNotification;
 use App\Notifications\TicketReplyReceivedNotification;
 use App\Notifications\TicketStatusChangedNotification;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -18,6 +19,149 @@ use Tests\TestCase;
 class TicketControllerTest extends TestCase
 {
     use LazilyRefreshDatabase;
+
+    #[TestWith(['low'])]
+    #[TestWith(['medium'])]
+    #[TestWith(['high'])]
+    public function test_ticket_creation_preserves_string_status_and_priority(string $priority): void
+    {
+        Notification::fake([TicketCreatedNotification::class]);
+        $customer = $this->createUser('customer', ['create-ticket']);
+
+        $response = $this->actingAs($customer)->postJson(route('tickets.store', [], false), [
+            'subject' => 'Account access',
+            'description' => 'Please help with my account.',
+            'priority' => $priority,
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', 'true')
+            ->assertJsonPath('ticket.status', 'open')
+            ->assertJsonPath('ticket.priority', $priority);
+        $ticket = Ticket::findOrFail($response->json('ticket.id'));
+        $this->assertSame('open', $ticket->status);
+        $this->assertSame($priority, $ticket->priority);
+        $this->assertDatabaseHas('ticket_history', ['ticket_id' => $ticket->id, 'action' => 'ticket_created', 'new_value' => 'open']);
+        Notification::assertSentTo($customer, TicketCreatedNotification::class);
+        Notification::assertCount(1);
+    }
+
+    public function test_invalid_priority_returns_422_without_creating_a_ticket(): void
+    {
+        Notification::fake([TicketCreatedNotification::class]);
+        $customer = $this->createUser('customer', ['create-ticket']);
+
+        $response = $this->actingAs($customer)->postJson(route('tickets.store', [], false), [
+            'subject' => 'Account access',
+            'description' => 'Please help with my account.',
+            'priority' => 'urgent',
+        ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors([
+            'priority' => 'The selected priority is invalid.',
+        ]);
+        $this->assertDatabaseCount('tickets', 0);
+        Notification::assertNothingSent();
+    }
+
+    #[TestWith(['open', 'low'])]
+    #[TestWith(['in_progress', 'medium'])]
+    #[TestWith(['waiting_for_customer', 'high'])]
+    #[TestWith(['resolved', 'medium'])]
+    public function test_ticket_filters_preserve_string_values_and_pagination(string $status, string $priority): void
+    {
+        $admin = $this->createUser('administrator', ['view-all-ticket']);
+        $ticket = $this->createTicket($status);
+        $ticket->update(['priority' => $priority]);
+        $other = $this->createTicket($status === 'open' ? 'resolved' : 'open');
+        $other->update(['priority' => $priority]);
+        $wrongPriority = $this->createTicket($status);
+        $wrongPriority->update(['priority' => $priority === 'high' ? 'low' : 'high']);
+
+        $response = $this->actingAs($admin)->getJson(route('tickets.index', [], false).'?'.http_build_query([
+            'status' => $status,
+            'priority' => $priority,
+            'per_page' => 1,
+        ]));
+
+        $response->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $ticket->id)
+            ->assertJsonPath('data.0.status', $status)
+            ->assertJsonPath('data.0.priority', $priority)
+            ->assertJsonPath('meta.total', 1);
+    }
+
+    #[TestWith(['status', 'closed'])]
+    #[TestWith(['priority', 'urgent'])]
+    public function test_invalid_ticket_filters_return_422(string $field, string $value): void
+    {
+        $admin = $this->createUser('administrator', ['view-all-ticket']);
+
+        $response = $this->actingAs($admin)->getJson(route('tickets.index', [], false).'?'.http_build_query([$field => $value]));
+
+        $response->assertUnprocessable()->assertJsonValidationErrors([
+            $field => "The selected {$field} is invalid.",
+        ]);
+    }
+
+    #[TestWith(['open'])]
+    #[TestWith(['waiting_for_customer'])]
+    public function test_starting_or_resuming_work_preserves_history_without_status_notification(string $oldStatus): void
+    {
+        Notification::fake([TicketStatusChangedNotification::class]);
+        $agent = $this->createUser('support_agent', ['change-ticket-status']);
+        $ticket = $this->createTicket($oldStatus);
+        $ticket->assignments()->create(['agent_id' => $agent->id, 'assigned_by' => $agent->id]);
+
+        $response = $this->actingAs($agent)->patchJson(route('tickets.status.update', ['id' => $ticket->id], false), ['status' => 'in_progress']);
+
+        $response->assertOk()->assertJsonPath('data.status', 'in_progress');
+        $this->assertSame('in_progress', $ticket->fresh()->status);
+        $this->assertDatabaseHas('ticket_history', ['ticket_id' => $ticket->id, 'old_value' => $oldStatus, 'new_value' => 'in_progress']);
+        Notification::assertNothingSent();
+    }
+
+    #[TestWith(['open', 'open'])]
+    #[TestWith(['open', 'waiting_for_customer'])]
+    #[TestWith(['open', 'resolved'])]
+    #[TestWith(['in_progress', 'open'])]
+    #[TestWith(['in_progress', 'in_progress'])]
+    #[TestWith(['waiting_for_customer', 'open'])]
+    #[TestWith(['waiting_for_customer', 'waiting_for_customer'])]
+    #[TestWith(['waiting_for_customer', 'resolved'])]
+    #[TestWith(['resolved', 'open'])]
+    #[TestWith(['resolved', 'in_progress'])]
+    #[TestWith(['resolved', 'waiting_for_customer'])]
+    #[TestWith(['resolved', 'resolved'])]
+    public function test_invalid_transitions_return_409_without_changes(string $oldStatus, string $newStatus): void
+    {
+        Notification::fake([TicketStatusChangedNotification::class]);
+        $agent = $this->createUser('support_agent', ['change-ticket-status', 'resolve-ticket']);
+        $ticket = $this->createTicket($oldStatus);
+        $ticket->assignments()->create(['agent_id' => $agent->id, 'assigned_by' => $agent->id]);
+
+        $response = $this->actingAs($agent)->patchJson(route('tickets.status.update', ['id' => $ticket->id], false), ['status' => $newStatus]);
+
+        $response->assertConflict()->assertJsonPath('message', 'Invalid ticket status transition.');
+        $this->assertSame($oldStatus, $ticket->fresh()->status);
+        $this->assertDatabaseCount('ticket_history', 0);
+        Notification::assertNothingSent();
+    }
+
+    public function test_resolving_without_resolve_permission_returns_403(): void
+    {
+        Notification::fake([TicketStatusChangedNotification::class]);
+        $agent = $this->createUser('support_agent', ['change-ticket-status']);
+        $ticket = $this->createTicket('in_progress');
+        $ticket->assignments()->create(['agent_id' => $agent->id, 'assigned_by' => $agent->id]);
+
+        $response = $this->actingAs($agent)->patchJson(route('tickets.status.update', ['id' => $ticket->id], false), ['status' => 'resolved']);
+
+        $response->assertForbidden();
+        $this->assertSame('in_progress', $ticket->fresh()->status);
+        $this->assertDatabaseCount('ticket_history', 0);
+        Notification::assertNothingSent();
+    }
 
     public function test_assignment_persists_history_and_notifies_the_agent(): void
     {

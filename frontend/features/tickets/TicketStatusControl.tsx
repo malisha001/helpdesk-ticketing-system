@@ -2,7 +2,8 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
+import { toast } from "sonner";
+import { getValidationErrors } from "@/lib/validationErrors";
 
 import { useUpdateTicketStatus } from "@/hooks/useUpdateTicketStatus";
 import type { TicketStatus } from "./types";
@@ -68,22 +69,18 @@ export default function TicketStatusControl({
 
     try {
       await mutateAsync(selectedStatus);
+      toast.success("Ticket status updated successfully");
 
       // Clear selection after successful update
       setSelectedStatus("");
-    } catch {
-      // Keep selected status and show the mutation error
+    } catch (error) {
+      if (!getValidationErrors(error).status) {
+        toast.error("Failed to update ticket status");
+      }
     }
   };
 
-  let errorMessage = "Failed to update ticket status.";
-
-  if (
-    axios.isAxiosError<{ message?: string }>(error)
-  ) {
-    errorMessage =
-      error.response?.data?.message ?? errorMessage;
-  }
+  const errorMessage = getValidationErrors(error).status;
 
   return (
     <form
@@ -96,13 +93,15 @@ export default function TicketStatusControl({
       <div>
         <label
           htmlFor={`status-${ticketId}`}
-          className="mb-2 block text-sm font-medium text-gray-700"
+          className="mb-2 block text-sm font-medium text-slate-700"
         >
           Update Status
         </label>
 
         <select
           id={`status-${ticketId}`}
+          aria-invalid={Boolean(errorMessage)}
+          aria-describedby={errorMessage ? `status-error-${ticketId}` : undefined}
           value={selectedStatus}
           onChange={(event) => {
             setSelectedStatus(
@@ -114,7 +113,7 @@ export default function TicketStatusControl({
             }
           }}
           disabled={isPending}
-          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none focus:border-blue-500 disabled:opacity-60"
+          className="form-control"
         >
           <option value="">
             Select new status
@@ -128,8 +127,8 @@ export default function TicketStatusControl({
         </select>
       </div>
 
-      {isError && (
-        <p role="alert" className="text-sm text-red-600">
+      {errorMessage && (
+        <p id={`status-error-${ticketId}`} role="alert" className="text-sm text-red-600">
           {errorMessage}
         </p>
       )}
@@ -137,7 +136,7 @@ export default function TicketStatusControl({
       <button
         type="submit"
         disabled={!selectedStatus || isPending}
-        className="rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="btn-primary"
       >
         {isPending ? "Updating..." : "Update Status"}
       </button>

@@ -2,28 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Handlers\ListUsersHandler;
-use App\Http\Requests\ListUsersRequest;
-use Illuminate\Http\JsonResponse;
-use App\Handlers\UpdateUserStatusHandler;
-use App\Http\Requests\UpdateUserStatusRequest;
-use App\Handlers\ShowUserHandler;
-use App\Http\Requests\ShowUserRequest;
+use App\Enums\UserRole;
 use App\Handlers\CreateAgentHandler;
+use App\Handlers\ListUsersHandler;
+use App\Handlers\ShowUserHandler;
+use App\Handlers\UpdateUserStatusHandler;
+use App\Http\Requests\ListUsersRequest;
+use App\Http\Requests\ShowUserRequest;
 use App\Http\Requests\StoreAgentRequest;
+use App\Http\Requests\UpdateUserStatusRequest;
+use Illuminate\Http\JsonResponse;
 
 class UserController extends Controller
 {
     public function index(
         ListUsersRequest $request,
-        ListUsersHandler $handler
+        ListUsersHandler $listUsersHandler
     ): JsonResponse {
 
         // 1. Get validated search and filter parameters
         $filters = $request->validated();
 
         // 2. Call handler
-        $users = $handler->handle($filters);
+        $users = $listUsersHandler->handle($filters);
 
         // 3. Return JSON response
         return response()->json([
@@ -40,7 +41,7 @@ class UserController extends Controller
 
     public function updateStatus(
         UpdateUserStatusRequest $request,
-        UpdateUserStatusHandler $handler,
+        UpdateUserStatusHandler $updateUserStatusHandler,
         int $id
     ): JsonResponse {
 
@@ -48,7 +49,7 @@ class UserController extends Controller
         $isActive = $request->boolean('is_active');
 
         // 2. Call Handler
-        $user = $handler->handle(
+        $user = $updateUserStatusHandler->handle(
             $request->user(),
             $id,
             $isActive
@@ -71,12 +72,12 @@ class UserController extends Controller
 
     public function show(
         ShowUserRequest $request,
-        ShowUserHandler $handler,
+        ShowUserHandler $showUserHandler,
         int $id
     ): JsonResponse {
 
         // 1. Get user details through Handler
-        $user = $handler->handle($id);
+        $user = $showUserHandler->handle($id);
 
         // 2. Return JSON response
         return response()->json([
@@ -87,14 +88,14 @@ class UserController extends Controller
 
     public function storeAgent(
         StoreAgentRequest $request,
-        CreateAgentHandler $handler
+        CreateAgentHandler $createAgentHandler
     ): JsonResponse {
 
         // 1. Get validated user information
         $validated = $request->validated();
 
         // 2. Create the support agent through the Handler
-        $agent = $handler->handle($validated);
+        $agent = $createAgentHandler->handle($validated);
 
         // 3. Return the created account details
         return response()->json([
@@ -105,9 +106,8 @@ class UserController extends Controller
                 'name' => $agent->name,
                 'email' => $agent->email,
                 'is_active' => (bool) $agent->is_active,
-                'role' => 'support_agent',
+                'role' => UserRole::SupportAgent->value,
             ],
         ], 201);
     }
-
 }

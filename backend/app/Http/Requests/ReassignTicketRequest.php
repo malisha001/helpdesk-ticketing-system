@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ReassignTicketRequest extends FormRequest
@@ -11,7 +12,7 @@ class ReassignTicketRequest extends FormRequest
         $user = $this->user();
 
         return $user !== null
-            && $user->hasRole('administrator')
+            && $user->hasRole(UserRole::Administrator->value)
             && $user->can('assign-ticket');
     }
 

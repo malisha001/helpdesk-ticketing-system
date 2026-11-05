@@ -10,8 +10,6 @@ import type {
   TicketListFilters,
 } from "./types";
 
-
-
 export async function getTickets(
   page: number,
   filters: TicketListFilters
@@ -40,9 +38,18 @@ export async function getTickets(
 export async function createTicket(
   ticket: CreateTicketPayload
 ): Promise<CreateTicketResponse> {
+  const body = new FormData();
+  body.append("subject", ticket.subject);
+  body.append("description", ticket.description);
+  body.append("priority", ticket.priority);
+  for (const file of ticket.attachments ?? []) {
+    body.append("attachments[]", file);
+  }
+
   const response = await apiClient.post<CreateTicketResponse>(
     "/tickets",
-    ticket
+    body,
+    { headers: { "Content-Type": undefined }, timeout: 120_000 }
   );
 
   return response.data;

@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\TicketAgent;
-use App\Models\TicketHistory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,9 +25,14 @@ class Ticket extends Model
         return $this->belongsTo(User::class, 'customer_id');
     }
 
-    public function replies():HasMany
+    public function replies(): HasMany
     {
         return $this->hasMany(TicketReply::class);
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TicketAttachment::class);
     }
 
     public function assignments(): HasMany
@@ -39,13 +42,13 @@ class Ticket extends Model
 
     public function activeAssignment(): HasOne
     {
-        return $this->hasOne(TicketAgent::class,'ticket_id')
-        //Only return rows where the unassigned_at column is NULL.
-        ->whereNull('unassigned_at');
+        return $this->hasOne(TicketAgent::class, 'ticket_id')
+        // Only return rows where the unassigned_at column is NULL.
+            ->whereNull('unassigned_at');
     }
 
     public function history(): HasMany
     {
-        return $this->hasMany(TicketHistory::class,'ticket_id');
+        return $this->hasMany(TicketHistory::class, 'ticket_id');
     }
 }

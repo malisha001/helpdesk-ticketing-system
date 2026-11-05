@@ -10,11 +10,11 @@ class DashboardController extends Controller
 {
     public function index(
         DashboardRequest $request,
-        DashboardHandler $handler
+        DashboardHandler $dashboardHandler
     ): JsonResponse {
 
         // Get dashboard statistics
-        $stats = $handler->handle($request->user());
+        $stats = $dashboardHandler->handle($request->user());
 
         return response()->json([
             'success' => true,

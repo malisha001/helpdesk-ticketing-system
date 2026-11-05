@@ -105,7 +105,7 @@ export default function DashboardOverview() {
 
   if (isPending) {
     return (
-      <p className="text-gray-600">
+      <p role="status" className="panel p-6 text-sm text-slate-500">
         Loading dashboard statistics...
       </p>
     );
@@ -120,7 +120,7 @@ export default function DashboardOverview() {
       : "Failed to load dashboard.";
 
     return (
-      <p role="alert" className="text-red-600">
+      <p role="alert" className="error-state">
         {message}
       </p>
     );
@@ -128,7 +128,7 @@ export default function DashboardOverview() {
 
   if (!data?.data) {
     return (
-      <p className="text-gray-600">
+      <p className="empty-state">
         No dashboard information available.
       </p>
     );
@@ -142,17 +142,17 @@ export default function DashboardOverview() {
     !("unassigned_queue" in stats);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
 
       {/* Dashboard Statistics */}
       <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold text-slate-900">
             Ticket Overview
           </h2>
 
           {isFetching && (
-            <span className="text-sm text-blue-600">
+            <span role="status" className="text-xs text-slate-500">
               Updating...
             </span>
           )}
@@ -162,13 +162,13 @@ export default function DashboardOverview() {
           {cards.map((card) => (
             <div
               key={card.label}
-              className="rounded-xl bg-white p-6 shadow-sm"
+              className="panel p-5 sm:p-6"
             >
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-slate-500">
                 {card.label}
               </p>
 
-              <p className="mt-3 text-3xl font-bold text-gray-900">
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">
                 {card.value}
               </p>
             </div>
@@ -177,15 +177,15 @@ export default function DashboardOverview() {
       </section>
 
       {/* Quick Actions */}
-      <section className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
+      <section className="panel p-5 sm:p-6">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">
           Quick Actions
         </h2>
 
         <div className="flex flex-wrap gap-3">
           <Link
             href="/tickets"
-            className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700"
+            className="btn-primary"
           >
             View Tickets
           </Link>
@@ -193,7 +193,7 @@ export default function DashboardOverview() {
           {isCustomer && (
             <Link
               href="/tickets/create"
-              className="rounded-lg border border-blue-600 px-5 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50"
+              className="btn-secondary"
             >
               Create New Ticket
             </Link>

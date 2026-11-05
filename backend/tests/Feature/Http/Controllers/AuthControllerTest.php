@@ -7,12 +7,72 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\PersonalAccessToken;
 use PHPUnit\Framework\Attributes\TestWith;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class AuthControllerTest extends TestCase
 {
     use LazilyRefreshDatabase;
+
+    public function test_registration_rejects_duplicate_emails_with_422(): void
+    {
+        User::factory()->create(['email' => 'existing@example.com']);
+
+        $response = $this->postJson('/api/register', [
+            'name' => 'Another Customer',
+            'email' => 'existing@example.com',
+            'password' => 'secret-password',
+        ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors('email');
+        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    #[TestWith(['name', ''])]
+    #[TestWith(['email', 'not-an-email'])]
+    #[TestWith(['password', ''])]
+    public function test_invalid_registration_fields_return_422(string $field, string $value): void
+    {
+        $payload = ['name' => 'Customer', 'email' => 'customer@example.com', 'password' => 'secret-password'];
+        $payload[$field] = $value;
+
+        $response = $this->postJson('/api/register', $payload);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors($field);
+        $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_registration_cannot_assign_submitted_permissions_or_expose_credentials(): void
+    {
+        Role::create(['name' => 'customer', 'guard_name' => 'web']);
+        Role::create(['name' => 'administrator', 'guard_name' => 'web']);
+        Permission::create(['name' => 'manage-users', 'guard_name' => 'web']);
+
+        $response = $this->postJson('/api/register', [
+            'name' => 'Customer',
+            'email' => 'customer@example.com',
+            'password' => 'secret-password',
+            'roles' => ['administrator'],
+            'permissions' => ['manage-users'],
+        ]);
+
+        $user = User::where('email', 'customer@example.com')->firstOrFail();
+        $response->assertCreated()->assertExactJson([
+            'success' => true,
+            'message' => 'Registration successful',
+            'data' => [
+                'id' => $user->id,
+                'name' => 'Customer',
+                'email' => 'customer@example.com',
+                'role' => 'customer',
+            ],
+        ]);
+        $this->assertSame(['customer'], $user->getRoleNames()->all());
+        $this->assertFalse($user->can('manage-users'));
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
 
     public function test_registration_creates_an_active_customer_with_a_hashed_password(): void
     {

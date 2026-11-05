@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\TicketStatus;
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -11,18 +13,18 @@ class UpdateTicketStatusRequest extends FormRequest
     {
         $user = $this->user();
 
-        if (!$user || !$user->hasRole('support_agent')) {
+        if (! $user || ! $user->hasRole(UserRole::SupportAgent->value)) {
             return false;
         }
 
-        if (!$user->can('change-ticket-status')) {
+        if (! $user->can('change-ticket-status')) {
             return false;
         }
 
         // Resolving requires an additional permission
         if (
-            $this->input('status') === 'resolved' &&
-            !$user->can('resolve-ticket')
+            $this->input('status') === TicketStatus::Resolved->value &&
+            ! $user->can('resolve-ticket')
         ) {
             return false;
         }
@@ -36,12 +38,7 @@ class UpdateTicketStatusRequest extends FormRequest
             'status' => [
                 'required',
                 'string',
-                Rule::in([
-                    'open',
-                    'in_progress',
-                    'waiting_for_customer',
-                    'resolved',
-                ]),
+                Rule::enum(TicketStatus::class),
             ],
         ];
     }

@@ -34,13 +34,13 @@ export default function TicketFilters({
         event.preventDefault();
         onSearch(searchInput.trim());
       }}
-      className="grid gap-4 md:grid-cols-4"
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
     >
       {/* Search */}
-      <div className="md:col-span-2">
+      <div className="sm:col-span-2">
         <label
           htmlFor="ticket-search"
-          className="mb-2 block text-sm font-medium text-gray-700"
+          className="mb-2 block text-sm font-medium text-slate-700"
         >
           Search Tickets
         </label>
@@ -53,7 +53,7 @@ export default function TicketFilters({
             setSearchInput(event.target.value)
           }
           placeholder="Search tickets..."
-          className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900"
+          className="form-control"
         />
       </div>
 
@@ -61,7 +61,7 @@ export default function TicketFilters({
       <div>
         <label
           htmlFor="ticket-status"
-          className="mb-2 block text-sm font-medium text-gray-700"
+          className="mb-2 block text-sm font-medium text-slate-700"
         >
           Status
         </label>
@@ -74,7 +74,7 @@ export default function TicketFilters({
               event.target.value as TicketListFilters["status"]
             )
           }
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-900"
+          className="form-control"
         >
           <option value="">All Statuses</option>
           <option value="open">Open</option>
@@ -90,7 +90,7 @@ export default function TicketFilters({
       <div>
         <label
           htmlFor="ticket-priority"
-          className="mb-2 block text-sm font-medium text-gray-700"
+          className="mb-2 block text-sm font-medium text-slate-700"
         >
           Priority
         </label>
@@ -103,7 +103,7 @@ export default function TicketFilters({
               event.target.value as TicketListFilters["priority"]
             )
           }
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-900"
+          className="form-control"
         >
           <option value="">All Priorities</option>
           <option value="low">Low</option>
@@ -113,10 +113,10 @@ export default function TicketFilters({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3 md:col-span-4">
+      <div className="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-4">
         <button
           type="submit"
-          className="rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white hover:bg-blue-700"
+          className="btn-primary"
         >
           Search
         </button>
@@ -127,7 +127,7 @@ export default function TicketFilters({
             setSearchInput("");
             onReset();
           }}
-          className="rounded-lg border border-gray-300 px-5 py-2.5 text-gray-700 hover:bg-gray-50"
+          className="btn-secondary"
         >
           Clear Filters
         </button>

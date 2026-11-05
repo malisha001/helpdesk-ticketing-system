@@ -5,9 +5,9 @@ namespace App\Handlers;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\DatabaseTransactionService;
+use App\Services\NotificationService;
 use App\Services\TicketAssignmentService;
 use App\Services\TicketHistoryService;
-use App\Services\TicketNotificationService;
 use App\Services\TicketService;
 
 class AssignTicketHandler
@@ -17,7 +17,7 @@ class AssignTicketHandler
         private TicketAssignmentService $assignmentService,
         private TicketHistoryService $historyService,
         private DatabaseTransactionService $transactionService,
-        private TicketNotificationService $notificationService
+        private NotificationService $notificationService
     ) {}
 
     public function handle(

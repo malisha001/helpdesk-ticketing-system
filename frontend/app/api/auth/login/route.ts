@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
+    //NextRequest is get data from frontend and send to backend (Laravel) for login
+    // NextResponse is used to send response back to frontend after login attempt
     // Get login credentials from frontend
     const body = await request.json();
 

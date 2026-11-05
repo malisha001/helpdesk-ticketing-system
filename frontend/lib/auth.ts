@@ -28,7 +28,7 @@ interface MeResponse {
 }
 
 export async function getCurrentUser(): Promise<AuthUser> {
-  // 1. Read the token from the HttpOnly cookie
+  // Read the token from the HttpOnly cookie
   const cookieStore = await cookies();
   const token = cookieStore.get("helpdesk_token")?.value;
 

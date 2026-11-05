@@ -2,10 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\TicketStatus;
 use App\Models\Ticket;
 use App\Models\TicketHistory;
-use App\Models\User;
 use App\Models\TicketReply;
+use App\Models\User;
 
 class TicketHistoryService
 {
@@ -21,7 +22,8 @@ class TicketHistoryService
             'new_value' => (string) $agent->id,
         ]);
     }
-        public function recordCreation(
+
+    public function recordCreation(
         Ticket $ticket,
         User $customer
     ): TicketHistory {
@@ -30,9 +32,10 @@ class TicketHistoryService
             'user_id' => $customer->id,
             'action' => 'ticket_created',
             'old_value' => null,
-            'new_value' => 'open',
+            'new_value' => TicketStatus::Open->value,
         ]);
     }
+
     public function recordAssignment(
         Ticket $ticket,
         User $agent,
@@ -46,6 +49,7 @@ class TicketHistoryService
             'new_value' => (string) $agent->id,
         ]);
     }
+
     public function recordReassignment(
         Ticket $ticket,
         User $admin,
@@ -60,6 +64,7 @@ class TicketHistoryService
             'new_value' => (string) $newAgentId,
         ]);
     }
+
     public function recordStatusChange(
         Ticket $ticket,
         User $agent,
@@ -74,6 +79,7 @@ class TicketHistoryService
             'new_value' => $newStatus,
         ]);
     }
+
     public function recordReply(
         Ticket $ticket,
         User $user,

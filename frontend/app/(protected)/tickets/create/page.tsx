@@ -12,7 +12,7 @@ async function CustomerCreateTicket() {
   }
 
   return (
-    <main className="p-6">
+    <main className="page-shell">
       <CreateTicketForm />
     </main>
   );
@@ -20,7 +20,7 @@ async function CustomerCreateTicket() {
 
 export default function CreateTicketPage() {
   return (
-    <Suspense fallback={<p className="p-6">Loading...</p>}>
+    <Suspense fallback={<p role="status" className="page-shell text-sm text-slate-500">Loading ticket form...</p>}>
       <CustomerCreateTicket />
     </Suspense>
   );

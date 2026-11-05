@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -7,6 +6,7 @@ import axios from "axios";
 
 import { useTickets } from "@/hooks/useTickets";
 import TicketFilters from "./TicketFilters";
+import { TicketPriorityBadge, TicketStatusBadge } from "./TicketBadge";
 
 import type { TicketListFilters } from "./types";
 
@@ -83,12 +83,13 @@ export default function TicketList() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl rounded-xl bg-white p-6 shadow-sm">
+    <div className="panel p-4 sm:p-6">
 
       {/* Page Heading */}
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
         Tickets
       </h1>
+      <p className="mb-6 mt-1 text-sm text-slate-500">Search and follow the progress of your support tickets.</p>
 
       {/* Search and Filters */}
       <TicketFilters
@@ -99,18 +100,18 @@ export default function TicketList() {
         onReset={handleReset}
       />
 
-      <div className="my-6 border-t border-gray-200" />
+      <div className="my-6 border-t border-slate-200" />
 
       {/* Initial Loading */}
       {isPending && (
-        <p className="py-6 text-gray-500">
+        <p role="status" className="empty-state">
           Loading tickets...
         </p>
       )}
 
       {/* Error */}
       {isError && (
-        <p role="alert" className="py-6 text-red-600">
+        <p role="alert" className="error-state">
           {errorMessage}
         </p>
       )}
@@ -119,16 +120,17 @@ export default function TicketList() {
       {!isPending && !isError && (
         <>
           {isFetching && (
-            <p className="mb-3 text-sm text-blue-600">
+            <p role="status" className="mb-3 text-xs text-slate-500">
               Updating tickets...
             </p>
           )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm">
+          <div className="overflow-x-auto rounded-lg border border-slate-200">
+            <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+              <caption className="sr-only">Support tickets with priority and current status</caption>
 
               <thead className="bg-slate-50 text-slate-700">
-                <tr className="border-b border-slate-300">
+                <tr className="border-b border-slate-200">
                   <th className="px-3 py-4">ID</th>
                   <th className="px-3 py-4">Subject</th>
                   <th className="px-3 py-4">Priority</th>
@@ -140,13 +142,13 @@ export default function TicketList() {
                 {tickets.map((ticket) => (
                   <tr
                     key={ticket.id}
-                    className="border-b border-gray-200 hover:bg-slate-50"
+                    className="border-b border-slate-200 hover:bg-slate-50"
                   >
-                    <td className="px-3 py-4">
+                    <td className="px-3 py-4 text-xs text-slate-500 tabular-nums">
                       #{ticket.id}
                     </td>
 
-                    <td className="px-3 py-4">
+                    <td className="max-w-sm break-words px-3 py-4">
                       <Link
                         href={`/tickets/${ticket.id}`}
                         className="font-medium text-blue-600 hover:underline"
@@ -156,11 +158,11 @@ export default function TicketList() {
                     </td>
 
                     <td className="px-3 py-4 capitalize">
-                      {ticket.priority}
+                      <TicketPriorityBadge priority={ticket.priority} />
                     </td>
 
                     <td className="px-3 py-4 capitalize">
-                      {ticket.status.replaceAll("_", " ")}
+                      <TicketStatusBadge status={ticket.status} />
                     </td>
                   </tr>
                 ))}
@@ -169,15 +171,16 @@ export default function TicketList() {
             </table>
 
             {tickets.length === 0 && (
-              <p className="py-8 text-center text-gray-500">
+              <p className="p-8 text-center text-sm leading-6 text-slate-500">
                 No tickets found matching your filters.
+                <span className="block">Try a different search or clear your filters.</span>
               </p>
             )}
           </div>
 
           {/* Pagination */}
-          <div className="mt-6 flex items-center justify-between gap-4">
-            <p className="text-sm text-gray-600">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm text-slate-600">
               Page {pagination?.current_page ?? page} of{" "}
               {lastPage}
             </p>
@@ -195,7 +198,7 @@ export default function TicketList() {
                   isFetching ||
                   isPlaceholderData
                 }
-                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-secondary"
               >
                 Previous
               </button>
@@ -210,7 +213,7 @@ export default function TicketList() {
                   isFetching ||
                   isPlaceholderData
                 }
-                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-secondary"
               >
                 Next
               </button>

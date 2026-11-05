@@ -2,7 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ListTicketsRequest extends FormRequest
 {
@@ -10,16 +14,16 @@ class ListTicketsRequest extends FormRequest
     {
         $user = $this->user();
 
-        if (!$user) {
-        return false;
+        if (! $user) {
+            return false;
         }
-        if ($user->hasRole('customer')) {
+        if ($user->hasRole(UserRole::Customer->value)) {
             return $user->can('view-own-ticket');
         }
-        if ($user->hasRole('support_agent')) {
+        if ($user->hasRole(UserRole::SupportAgent->value)) {
             return $user->can('view-unassigned-ticket') || $user->can('view-assigned-ticket');
         }
-        if ($user->hasRole('administrator')) {
+        if ($user->hasRole(UserRole::Administrator->value)) {
             return $user->can('view-all-ticket');
         }
 
@@ -34,13 +38,13 @@ class ListTicketsRequest extends FormRequest
             'status' => [
                 'sometimes',
                 'nullable',
-                'in:open,in_progress,waiting_for_customer,resolved',
+                Rule::enum(TicketStatus::class),
             ],
 
             'priority' => [
                 'sometimes',
                 'nullable',
-                'in:low,medium,high',
+                Rule::enum(TicketPriority::class),
             ],
 
             'page' => [

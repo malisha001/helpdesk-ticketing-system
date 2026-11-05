@@ -8,6 +8,8 @@ import { useTicket } from "../../hooks/useTicket";
 import ClaimTicketButton from "../../components/layout/ClaimTicketButton";
 import TicketStatusControl from "./TicketStatusControl";
 import TicketAssignmentControl from "./TicketAssignmentControl";
+import { formatAttachmentSize } from "./attachments";
+import { TicketPriorityBadge, TicketStatusBadge } from "./TicketBadge";
 interface TicketDetailsProps {
   ticketId: string;
 }
@@ -22,7 +24,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
 
   // Initial loading state
   if (isPending) {
-    return <p className="text-gray-500">Loading ticket details...</p>;
+    return <p role="status" className="panel p-6 text-sm text-slate-500">Loading ticket details...</p>;
   }
 
   // Error handling
@@ -34,7 +36,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
     }
 
     return (
-      <p role="alert" className="text-red-600">
+      <p role="alert" className="error-state">
         {message}
       </p>
     );
@@ -42,15 +44,15 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
 
   // Ticket not found
   if (!ticket) {
-    return <p>Ticket not found.</p>;
+    return <p className="empty-state">Ticket not found. Return to the ticket list to find another request.</p>;
   }
-const isAdministrator =
+  const isAdministrator =
   currentUser?.roles.includes("administrator") === true;
 
-const canManageAssignment =
+  const canManageAssignment =
   isAdministrator && ticket.status !== "resolved";
   
-const canClaim =
+  const canClaim =
   currentUser?.roles.includes("support_agent") === true &&
   ticket.status === "open" &&
   !ticket.active_assignment;
@@ -58,15 +60,15 @@ const canClaim =
   const isCustomer =
   currentUser?.roles.includes("customer") ?? false;
 
-const isAssignedAgent =
+  const isAssignedAgent =
   (currentUser?.roles.includes("support_agent") ?? false) &&
   ticket.active_assignment?.agent?.id === currentUser?.id;
 
-const canUpdateStatus =
+  const canUpdateStatus =
   isAssignedAgent &&
   ticket.status !== "resolved";
 
-const canReply =
+  const canReply =
   ticket.status !== "resolved" &&
   (isCustomer || isAssignedAgent);
 
@@ -81,89 +83,105 @@ const canReply =
   );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       {/* Back to Ticket List */}
-      <Link href="/tickets" className="text-sm text-blue-600 hover:underline">
+      <Link href="/tickets" className="inline-flex items-center text-sm font-medium text-blue-600 hover:underline">
         ← Back to Tickets
       </Link>
 
       {/* Background fetching indicator */}
       {isFetching && (
-        <p className="text-sm text-blue-600">Updating ticket details...</p>
+        <p role="status" className="text-xs text-slate-500">Updating ticket details...</p>
       )}
 
       {/* Ticket Information */}
-      <section className="rounded-xl bg-white p-6 shadow-sm">
+      <section className="panel p-4 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-sm text-gray-500">Ticket #{ticket.id}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-slate-500">Ticket #{ticket.id}</p>
 
-            <h1 className="mt-2 text-2xl font-bold text-gray-900">
+            <h1 className="mt-2 break-words text-2xl font-semibold tracking-tight text-slate-900">
               {ticket.subject}
             </h1>
           </div>
 
-          <span className="rounded-lg bg-blue-100 px-3 py-2 text-sm text-blue-800">
-            {ticket.status.replaceAll("_", " ")}
-          </span>
+          <TicketStatusBadge status={ticket.status} />
         </div>
 
-        <div className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
+        <div className="mt-6 grid gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
           {/* Priority */}
           <div>
-            <p className="text-gray-500">Priority</p>
-            <p className="font-medium capitalize text-gray-900">
-              {ticket.priority}
-            </p>
+            <p className="text-slate-500">Priority</p>
+            <div className="mt-1"><TicketPriorityBadge priority={ticket.priority} /></div>
           </div>
 
           {/* Created Date */}
           <div>
-            <p className="text-gray-500">Created</p>
-            <p className="font-medium text-gray-900">
+            <p className="text-slate-500">Created</p>
+            <p className="break-words font-medium text-slate-900">
               {ticket.created_at.slice(0, 10)}
             </p>
           </div>
 
           {/* Customer */}
           <div>
-            <p className="text-gray-500">Customer</p>
-            <p className="font-medium text-gray-900">
+            <p className="text-slate-500">Customer</p>
+            <p className="break-words font-medium text-slate-900">
               {ticket.customer?.name ?? "Not available"}
             </p>
           </div>
 
           {/* Assigned Agent */}
           <div>
-            <p className="text-gray-500">Assigned Agent</p>
-            <p className="font-medium text-gray-900">
+            <p className="text-slate-500">Assigned Agent</p>
+            <p className="break-words font-medium text-slate-900">
               {ticket.active_assignment?.agent?.name ?? "Unassigned"}
             </p>
           </div>
         </div>
 
         {/* Description */}
-        <div className="mt-6 border-t pt-5">
-          <h2 className="font-semibold text-gray-900">Description</h2>
+        <div className="mt-6 border-t border-slate-200 pt-5">
+          <h2 className="font-semibold text-slate-900">Description</h2>
 
-          <p className="mt-3 whitespace-pre-wrap text-gray-700">
+          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">
             {ticket.description}
           </p>
         </div>
       </section>
       
       {/* Support Agent Status Management */}
+      <section className="panel p-4 sm:p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Attachments ({ticket.attachments?.length ?? 0})</h2>
+        {!ticket.attachments?.length ? (
+          <p className="empty-state mt-4">No attachments for this ticket.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {ticket.attachments.map((attachment) => (
+              <li key={attachment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                <span className="min-w-0 break-all text-slate-700">
+                  {attachment.original_name} — {formatAttachmentSize(attachment.size)}
+                </span>
+                <a
+                  href={`/api/tickets/${ticket.id}/attachments/${attachment.id}/download`}
+                  className="btn-secondary shrink-0"
+                  aria-label={`Download ${attachment.original_name}`}
+                >Download</a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {canUpdateStatus && (
-        <section className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+        <section className="panel p-4 sm:p-6">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">
             Manage Ticket Status
           </h2>
 
-          <p className="mb-4 text-sm text-gray-600">
+          <p className="mb-4 text-sm text-slate-600">
             Current status:{" "}
-            <span className="font-medium capitalize">
-              {ticket.status.replaceAll("_", " ")}
-            </span>
+            <TicketStatusBadge status={ticket.status} />
           </p>
 
           <TicketStatusControl
@@ -175,14 +193,14 @@ const canReply =
       
 {/* Administrator Ticket Assignment */}
 {canManageAssignment && (
-  <section className="rounded-xl bg-white p-6 shadow-sm">
-    <h2 className="mb-4 text-lg font-semibold text-gray-900">
+  <section className="panel p-4 sm:p-6">
+    <h2 className="mb-4 text-lg font-semibold text-slate-900">
       {ticket.active_assignment
         ? "Reassign Ticket"
         : "Assign Ticket"}
     </h2>
 
-    <p className="mb-4 text-sm text-gray-600">
+    <p className="mb-4 text-sm text-slate-600">
       Current agent:{" "}
       <span className="font-medium">
         {ticket.active_assignment?.agent?.name ??
@@ -201,12 +219,12 @@ const canReply =
 
       {/* Claim Ticket Action */}
       {canClaim && (
-        <section className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+        <section className="panel p-4 sm:p-6">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">
             Take Ownership
           </h2>
 
-          <p className="mb-4 text-sm text-gray-600">
+          <p className="mb-4 text-sm text-slate-600">
             This ticket is currently unassigned.
             Claim it to start handling the customer request.
           </p>
@@ -216,26 +234,26 @@ const canReply =
       )}
 
       {/* Ticket Replies */}
-      <section className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900">Conversation</h2>
+      <section className="panel p-4 sm:p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Conversation</h2>
 
         {replies.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-500">No replies yet.</p>
+          <p className="empty-state mt-4">No replies yet. Conversation updates will appear here.</p>
         ) : (
           <div className="mt-5 space-y-4">
             {replies.map((reply) => (
-              <article key={reply.id} className="rounded-lg bg-slate-50 p-4">
-                <div className="flex justify-between gap-3">
-                  <p className="font-medium text-gray-900">
+              <article key={reply.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-wrap justify-between gap-2">
+                  <p className="break-words text-sm font-semibold text-slate-900">
                     {reply.user?.name ?? "User"}
                   </p>
 
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-500">
                     {reply.created_at.slice(0, 10)}
                   </p>
                 </div>
 
-                <p className="mt-3 whitespace-pre-wrap text-sm text-gray-700">
+                <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">
                   {reply.message}
                 </p>
               </article>
@@ -245,8 +263,8 @@ const canReply =
         
       {/* Reply Form */}
       {canReply && (
-        <section className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+        <section className="mt-6 border-t border-slate-200 pt-6">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">
             Add a Reply
           </h2>
 
@@ -256,22 +274,22 @@ const canReply =
       </section>
 
       {/* Ticket History */}
-      <section className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900">
+      <section className="panel p-4 sm:p-6">
+        <h2 className="text-lg font-semibold text-slate-900">
           Activity History
         </h2>
 
         {history.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-500">No activity recorded.</p>
+          <p className="empty-state mt-4">No activity recorded.</p>
         ) : (
           <div className="mt-5 space-y-4">
             {history.map((item) => (
               <div key={item.id} className="border-l-2 border-blue-400 pl-4">
-                <p className="text-sm font-medium capitalize text-gray-900">
+                <p className="text-sm font-medium capitalize text-slate-900">
                   {item.action.replaceAll("_", " ")}
                 </p>
 
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-slate-500">
                   {item.user?.name ?? "System"} · {item.created_at.slice(0, 10)}
                 </p>
               </div>

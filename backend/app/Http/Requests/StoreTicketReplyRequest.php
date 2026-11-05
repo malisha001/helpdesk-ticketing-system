@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTicketReplyRequest extends FormRequest
@@ -11,14 +11,13 @@ class StoreTicketReplyRequest extends FormRequest
     {
         $user = $this->user();
 
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
-        return (
-            $user->hasAnyRole(['customer', 'support_agent'])
-            && $user->can('reply-to-ticket')
-        );
+        return
+            $user->hasAnyRole([UserRole::Customer->value, UserRole::SupportAgent->value])
+            && $user->can('reply-to-ticket');
     }
 
     public function rules(): array

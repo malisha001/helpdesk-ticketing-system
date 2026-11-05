@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -21,7 +22,7 @@ class TicketCreatedNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', 'broadcast'];
     }
 
     /**
@@ -37,6 +38,25 @@ class TicketCreatedNotification extends Notification implements ShouldQueue
             ->line("Subject: {$this->ticketSubject}")
             ->line('Our support team will review your request.')
             ->line('Thank you for contacting HelpDesk.');
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return [
+            'event' => 'ticket_created',
+            'title' => "Ticket #{$this->ticketId} Created",
+            'message' => 'Your support ticket was created successfully.',
+            'ticket_id' => $this->ticketId,
+            'url' => "/tickets/{$this->ticketId}",
+        ];
+    }
+
+    public function toBroadcast(
+        object $notifiable
+    ): BroadcastMessage {
+        return new BroadcastMessage(
+            $this->toDatabase($notifiable)
+        );
     }
 
     /**

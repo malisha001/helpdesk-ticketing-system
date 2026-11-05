@@ -2,24 +2,21 @@
 
 namespace App\Handlers;
 
+use App\Enums\TicketStatus;
 use App\Models\TicketReply;
 use App\Models\User;
 use App\Services\DatabaseTransactionService;
+use App\Services\NotificationService;
 use App\Services\TicketHistoryService;
-use App\Services\TicketNotificationService;
-use App\Services\TicketReplyService;
 use App\Services\TicketService;
-use App\Services\TicketStatusService;
 
 class StoreTicketReplyHandler
 {
     public function __construct(
         private TicketService $ticketService,
-        private TicketReplyService $replyService,
-        private TicketStatusService $statusService,
         private TicketHistoryService $historyService,
         private DatabaseTransactionService $transactionService,
-        private TicketNotificationService $notificationService
+        private NotificationService $notificationService
     ) {}
 
     public function handle(
@@ -36,7 +33,7 @@ class StoreTicketReplyHandler
                     ->findAndLock($ticketId);
 
                 // 2. Validate access and create reply
-                $reply = $this->replyService
+                $reply = $this->ticketService
                     ->createReply($ticket, $user, $message);
 
                 // 3. Record reply history
@@ -44,7 +41,7 @@ class StoreTicketReplyHandler
                     ->recordReply($ticket, $user, $reply);
 
                 // 4. Resume ticket if a customer reply requires it
-                $statusChanged = $this->statusService
+                $statusChanged = $this->ticketService
                     ->resumeAfterCustomerReply($ticket, $user);
 
                 // 5. Record automatic status change
@@ -52,8 +49,8 @@ class StoreTicketReplyHandler
                     $this->historyService->recordStatusChange(
                         $ticket,
                         $user,
-                        'waiting_for_customer',
-                        'in_progress'
+                        TicketStatus::WaitingForCustomer->value,
+                        TicketStatus::InProgress->value
                     );
                 }
 

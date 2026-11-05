@@ -3,6 +3,8 @@
 
 import { useState } from "react";
 import axios from "axios";
+import { toast } from "sonner";
+import { getValidationErrors } from "@/lib/validationErrors";
 
 import { useSupportAgents } from "@/hooks/useSupportAgents";
 import { useTicketAssignment } from "@/hooks/useTicketAssignment";
@@ -62,14 +64,17 @@ export default function TicketAssignmentControl({
         action,
       });
 
+      toast.success(action === "assign" ? "Ticket assigned successfully" : "Ticket reassigned successfully");
       setSelectedAgentId("");
-    } catch {
-      // TanStack Query stores the error.
+    } catch (error) {
+      if (!getValidationErrors(error).agent_id) {
+        toast.error(action === "assign" ? "Failed to assign ticket" : "Failed to reassign ticket");
+      }
     }
   };
 
   if (agentsLoading) {
-    return <p>Loading support agents...</p>;
+    return <p role="status" className="text-sm text-slate-500">Loading support agents...</p>;
   }
 
   if (agentsError) {
@@ -82,15 +87,10 @@ export default function TicketAssignmentControl({
         ? agentsFetchError.message
         : "Failed to load support agents.";
 
-    return <p role="alert" className="text-red-600">{message}</p>;
+    return <p role="alert" className="error-state">{message}</p>;
   }
 
-  let errorMessage = "Failed to update ticket assignment.";
-
-  if (axios.isAxiosError<{ message?: string }>(error)) {
-    errorMessage =
-      error.response?.data?.message ?? errorMessage;
-  }
+  const errorMessage = getValidationErrors(error).agent_id;
 
   return (
     <form
@@ -103,7 +103,7 @@ export default function TicketAssignmentControl({
       <div>
         <label
           htmlFor={`agent-${ticketId}`}
-          className="mb-2 block text-sm font-medium text-gray-700"
+          className="mb-2 block text-sm font-medium text-slate-700"
         >
           {action === "assign"
             ? "Select Support Agent"
@@ -112,6 +112,8 @@ export default function TicketAssignmentControl({
 
         <select
           id={`agent-${ticketId}`}
+          aria-invalid={Boolean(errorMessage)}
+          aria-describedby={errorMessage ? `agent-error-${ticketId}` : undefined}
           value={selectedAgentId}
           onChange={(event) => {
             setSelectedAgentId(event.target.value);
@@ -121,7 +123,7 @@ export default function TicketAssignmentControl({
             }
           }}
           disabled={isPending || availableAgents.length === 0}
-          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none focus:border-blue-500 disabled:opacity-60"
+          className="form-control"
         >
           <option value="">Choose an agent</option>
 
@@ -133,14 +135,14 @@ export default function TicketAssignmentControl({
         </select>
 
         {availableAgents.length === 0 && (
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-slate-500">
             No eligible support agents available.
           </p>
         )}
       </div>
 
-      {isError && (
-        <p role="alert" className="text-sm text-red-600">
+      {errorMessage && (
+        <p id={`agent-error-${ticketId}`} role="alert" className="text-sm text-red-600">
           {errorMessage}
         </p>
       )}
@@ -148,7 +150,7 @@ export default function TicketAssignmentControl({
       <button
         type="submit"
         disabled={!canSubmit}
-        className="rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="btn-primary"
       >
         {isPending
           ? "Saving..."

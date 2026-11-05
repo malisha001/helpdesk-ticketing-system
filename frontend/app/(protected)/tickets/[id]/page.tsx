@@ -13,7 +13,7 @@ async function TicketDetailsContent({ params }: TicketDetailsPageProps) {
   await getCurrentUser();
 
   return (
-    <main className="p-6">
+    <main className="page-shell">
       <TicketDetails ticketId={id} />
     </main>
   );
@@ -22,7 +22,7 @@ async function TicketDetailsContent({ params }: TicketDetailsPageProps) {
 export default function TicketDetailsPage({ params }: TicketDetailsPageProps) {
   return (
     <Suspense
-      fallback={<p className="p-6 text-gray-500">Loading ticket page...</p>}
+      fallback={<p role="status" className="page-shell text-sm text-slate-500">Loading ticket page...</p>}
     >
       <TicketDetailsContent params={params} />
     </Suspense>

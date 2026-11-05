@@ -35,10 +35,12 @@ export interface CreateTicketPayload {
   subject: string;
   description: string;
   priority: TicketPriority;
+  attachments?: File[];
 }
 
 export interface CreateTicketResponse {
-  success: boolean;
+  success: boolean | "true";
+  ticket?: Ticket;
   message?: string;
   data?: Ticket;
 }
@@ -67,6 +69,7 @@ export interface TicketHistory {
 }
 
 export interface TicketDetails extends Ticket {
+  attachments?: TicketAttachment[];
   customer?: TicketUser | null;
 
   active_assignment?: {
@@ -75,6 +78,14 @@ export interface TicketDetails extends Ticket {
 
   replies?: TicketReply[];
   history?: TicketHistory[];
+}
+
+export interface TicketAttachment {
+  id: number;
+  original_name: string;
+  mime_type: string;
+  size: number;
+  download_url: string;
 }
 
 export interface TicketDetailsResponse {

@@ -2,7 +2,8 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
+import { toast } from "sonner";
+import { getValidationErrors } from "@/lib/validationErrors";
 
 import { useSendTicketReply } from "@/hooks/useSendTicketReply";
 
@@ -33,23 +34,18 @@ export default function ReplyForm({
     try {
       // Send reply and wait for the mutation to succeed
       await mutateAsync(trimmedMessage);
+      toast.success("Reply sent successfully");
 
       // Clear the input only after successful submission
       setMessage("");
-    } catch {
-      // TanStack Query exposes the error through `error`.
-      // We display it below instead of clearing the message.
+    } catch (error) {
+      if (!getValidationErrors(error).message) {
+        toast.error("Failed to send reply");
+      }
     }
   };
 
-  let errorMessage = "Failed to send reply.";
-
-  if (
-    axios.isAxiosError<{ message?: string }>(error)
-  ) {
-    errorMessage =
-      error.response?.data?.message ?? errorMessage;
-  }
+  const errorMessage = getValidationErrors(error).message;
 
   return (
     <form
@@ -62,13 +58,15 @@ export default function ReplyForm({
       <div>
         <label
           htmlFor={`reply-${ticketId}`}
-          className="mb-2 block text-sm font-medium text-gray-700"
+          className="mb-2 block text-sm font-medium text-slate-700"
         >
           Your reply
         </label>
 
         <textarea
           id={`reply-${ticketId}`}
+          aria-invalid={Boolean(errorMessage)}
+          aria-describedby={errorMessage ? `reply-error-${ticketId}` : undefined}
           value={message}
           onChange={(event) => {
             setMessage(event.target.value);
@@ -80,12 +78,12 @@ export default function ReplyForm({
           rows={4}
           placeholder="Write your reply here..."
           disabled={isPending}
-          className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:border-blue-500 disabled:opacity-60"
+          className="form-control"
         />
       </div>
 
-      {isError && (
-        <p role="alert" className="text-sm text-red-600">
+      {errorMessage && (
+        <p id={`reply-error-${ticketId}`} role="alert" className="text-sm text-red-600">
           {errorMessage}
         </p>
       )}
@@ -93,7 +91,7 @@ export default function ReplyForm({
       <button
         type="submit"
         disabled={!message.trim() || isPending}
-        className="rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="btn-primary"
       >
         {isPending ? "Sending..." : "Send Reply"}
       </button>

@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 
 import { claimTicket } from "@/features/tickets/api";
+import { toast } from "sonner";
 
 export function useClaimTicket(ticketId: string) {
   const queryClient = useQueryClient();
@@ -24,6 +25,10 @@ export function useClaimTicket(ticketId: string) {
           queryKey: ["tickets"],
         }),
       ]);
+      toast.success("Ticket claimed successfully");
+    },
+    onError: () => {
+      toast.error("Failed to claim ticket");
     },
   });
 }

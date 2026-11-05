@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RolePermissionSeeder extends Seeder
@@ -32,11 +33,11 @@ class RolePermissionSeeder extends Seeder
             Permission::findOrCreate($permission, 'web');
         }
 
-        $customer = Role::findOrCreate('customer', 'web');
+        $customer = Role::findOrCreate(UserRole::Customer->value, 'web');
 
-        $agent = Role::findOrCreate('support_agent', 'web');
+        $agent = Role::findOrCreate(UserRole::SupportAgent->value, 'web');
 
-        $administrator = Role::findOrCreate('administrator', 'web');
+        $administrator = Role::findOrCreate(UserRole::Administrator->value, 'web');
 
         $customer->syncPermissions([
             'create-ticket',

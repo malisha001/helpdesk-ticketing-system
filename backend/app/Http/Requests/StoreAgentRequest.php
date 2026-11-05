@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreAgentRequest extends FormRequest
@@ -11,7 +12,7 @@ class StoreAgentRequest extends FormRequest
         $user = $this->user();
 
         return $user !== null
-            && $user->hasRole('administrator')
+            && $user->hasRole(UserRole::Administrator->value)
             && $user->can('manage-users');
     }
 

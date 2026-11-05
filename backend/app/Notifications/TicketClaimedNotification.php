@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -21,7 +22,7 @@ class TicketClaimedNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', 'broadcast'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -35,5 +36,24 @@ class TicketClaimedNotification extends Notification implements ShouldQueue
             ->line("Support Agent: {$this->agentName}")
             ->line('You can log in to HelpDesk to review your ticket.')
             ->line('Thank you.');
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return [
+            'event' => 'ticket_claimed',
+            'title' => "Ticket #{$this->ticketId} Claimed",
+            'message' => "{$this->agentName} has started handling your ticket.",
+            'ticket_id' => $this->ticketId,
+            'url' => "/tickets/{$this->ticketId}",
+        ];
+    }
+
+    public function toBroadcast(
+        object $notifiable
+    ): BroadcastMessage {
+        return new BroadcastMessage(
+            $this->toDatabase($notifiable)
+        );
     }
 }
